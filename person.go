@@ -32,14 +32,6 @@ func (p Person) Image() *ebiten.Image {
 	return p.image
 }
 
-func (p Person) Size() Vec {
-	if p.IsSelected {
-		return Vec{X: p.size.X + 2, Y: p.size.Y + 2}
-	} else {
-		return p.size
-	}
-}
-
 func (p Person) Bounds() Rectangle {
 	return Rectangle{Vec{p.Position.X - p.size.X/2, p.Position.Y - p.size.Y/2}, Vec{p.Position.X + p.size.X/2, p.Position.Y + p.size.Y/2}}
 }

@@ -57,7 +57,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(shallowWaterColor)
 	soil.Fill(soilColor)
 	for _, p := range g.Persons {
-		soil.DrawImage(p.Image(), GetDrawImageOptions(p.Size(), p.Position))
+		bounds := p.Image().Bounds()
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(p.Position.X-float64(bounds.Dx())/2, p.Position.Y-float64(bounds.Dy())/2)
+		soil.DrawImage(p.Image(), op)
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(soil.Position.X, soil.Position.Y)
@@ -72,7 +75,7 @@ func main() {
 	ebiten.SetWindowSize(1280, 960)
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
-	mainPerson := NewPerson(Vec{X: 120, Y: 80})
+	mainPerson := NewPerson(Vec{float64(soil.Image.Bounds().Dx()) / 2, float64(soil.Image.Bounds().Dy()) / 2})
 	game.Persons = append(game.Persons, &mainPerson)
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)
