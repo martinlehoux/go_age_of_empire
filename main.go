@@ -31,7 +31,11 @@ func (g *Game) Update() error {
 		x, y := ebiten.CursorPosition()
 		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
 		for _, p := range g.Persons {
-			if p.IsSelected {
+			futureBounds := Rectangle{
+				tileClick.Sub(p.size.Div(2)),
+				tileClick.Add(p.size.Div(2)),
+			}
+			if p.IsSelected && futureBounds.In(soil.Bounds()) {
 				p.MoveTo(tileClick)
 			}
 		}
