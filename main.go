@@ -10,25 +10,18 @@ import (
 
 type Tile struct {
 	*ebiten.Image
-	Size     Vec
-	Position Vec
+	Size     Point
+	Position Point
 }
 
-func NewTile(size Vec, position Vec, color color.Color) Tile {
+func NewTile(size Point, position Point, color color.Color) Tile {
 	image := ebiten.NewImage(int(size.X), int(size.Y))
 	image.Fill(color)
 	return Tile{Size: size, Position: position, Image: image}
 }
 
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
-var soil = NewTile(Vec{X: 280, Y: 200}, Vec{X: 20, Y: 20}, soilColor)
-
-func GetDrawImageOptions(size Vec, position Vec) *ebiten.DrawImageOptions {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(position.X-size.X/2, position.Y-size.Y/2)
-
-	return op
-}
+var soil = NewTile(Point{280, 200}, Point{20, 20}, soilColor)
 
 type Game struct {
 	Persons []*Person
@@ -37,12 +30,12 @@ type Game struct {
 func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
-		tileClick := Vec{X: float64(x) - soil.Position.X, Y: float64(y) - soil.Position.Y}
+		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
 		fmt.Println("Click: ", tileClick)
 		for _, p := range g.Persons {
 			p.IsSelected = false
 			fmt.Println("Person: ", p.Position)
-			if p.Bounds().Contains(tileClick) {
+			if tileClick.In(p.CollisionBounds()) {
 				fmt.Println("Person selected")
 				p.IsSelected = true
 			}
@@ -58,12 +51,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	soil.Fill(soilColor)
 	for _, p := range g.Persons {
 		bounds := p.Image().Bounds()
+		fmt.Println("Person bounds: ", bounds)
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(p.Position.X-float64(bounds.Dx())/2, p.Position.Y-float64(bounds.Dy())/2)
+		op.GeoM.Translate(float64(p.Position.X-bounds.Dx()/2), float64(p.Position.Y-bounds.Dy()/2))
+		fmt.Println("Person position:", p.Position, "Draw geom: ", op.GeoM)
 		soil.DrawImage(p.Image(), op)
 	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(soil.Position.X, soil.Position.Y)
+	op.GeoM.Translate(float64(soil.Position.X), float64(soil.Position.Y))
 	screen.DrawImage(soil.Image, op)
 }
 
@@ -75,7 +70,7 @@ func main() {
 	ebiten.SetWindowSize(1280, 960)
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
-	mainPerson := NewPerson(Vec{float64(soil.Image.Bounds().Dx()) / 2, float64(soil.Image.Bounds().Dy()) / 2})
+	mainPerson := NewPerson(Point{soil.Image.Bounds().Dx() / 2, soil.Image.Bounds().Dy() / 2})
 	game.Persons = append(game.Persons, &mainPerson)
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)

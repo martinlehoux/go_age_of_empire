@@ -7,14 +7,14 @@ import (
 )
 
 type Person struct {
-	size          Vec
-	Position      Vec
+	size          Point
+	Position      Point
 	IsSelected    bool
 	image         *ebiten.Image
 	selectedImage *ebiten.Image
 }
 
-func NewPerson(position Vec) Person {
+func NewPerson(position Point) Person {
 	image := ebiten.NewImage(10, 10)
 	image.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
 	selectedImage := ebiten.NewImage(12, 12)
@@ -22,7 +22,7 @@ func NewPerson(position Vec) Person {
 	op.GeoM.Translate(1, 1)
 	selectedImage.Fill(color.RGBA{0xff, 0x00, 0x00, 0xff})
 	selectedImage.DrawImage(image, op)
-	return Person{Position: position, size: Vec{X: 10, Y: 10}, image: image, selectedImage: selectedImage}
+	return Person{Position: position, size: Point{10, 10}, image: image, selectedImage: selectedImage}
 }
 
 func (p Person) Image() *ebiten.Image {
@@ -32,6 +32,9 @@ func (p Person) Image() *ebiten.Image {
 	return p.image
 }
 
-func (p Person) Bounds() Rectangle {
-	return Rectangle{Vec{p.Position.X - p.size.X/2, p.Position.Y - p.size.Y/2}, Vec{p.Position.X + p.size.X/2, p.Position.Y + p.size.Y/2}}
+func (p Person) CollisionBounds() Rectangle {
+	return Rectangle{
+		p.Position.Sub(p.size.Div(2)),
+		p.Position.Add(p.size.Div(2)),
+	}
 }
