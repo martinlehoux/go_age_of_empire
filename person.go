@@ -45,13 +45,5 @@ func (p *Person) MoveTo(destination Point) {
 }
 
 func (p *Person) Update() {
-	speed := 2
-	if p.move.IsActive {
-		remainingMove := p.move.Destination.Sub(p.Position)
-		delta := remainingMove.Mul(speed).Div(int(Length(remainingMove)))
-		p.Position = p.Position.Add(delta)
-		if Distance(p.Position, p.move.Destination) < float64(speed) {
-			p.move.IsActive = false
-		}
-	}
+	p.Position = p.move.Update(p.Position, 3)
 }
