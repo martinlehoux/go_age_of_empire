@@ -16,14 +16,14 @@ type Person struct {
 }
 
 func NewPerson(position Point) Person {
-	image := ebiten.NewImage(10, 10)
+	image := ebiten.NewImage(100, 100)
 	image.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
-	selectedImage := ebiten.NewImage(12, 12)
+	selectedImage := ebiten.NewImage(120, 120)
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(1, 1)
+	op.GeoM.Translate(10, 10)
 	selectedImage.Fill(color.RGBA{0xff, 0x00, 0x00, 0xff})
 	selectedImage.DrawImage(image, op)
-	return Person{Position: position, size: Point{10, 10}, image: image, selectedImage: selectedImage}
+	return Person{Position: position, size: Point{100, 100}, image: image, selectedImage: selectedImage}
 }
 
 func (p Person) Image() *ebiten.Image {
@@ -45,5 +45,5 @@ func (p *Person) MoveTo(destination Point) {
 }
 
 func (p *Person) Update() {
-	p.Position = p.move.Update(p.Position, 3)
+	p.Position = p.move.Update(p.Position, 30)
 }

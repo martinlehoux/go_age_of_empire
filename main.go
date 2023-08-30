@@ -20,7 +20,7 @@ func NewTile(size Point, position Point, color color.Color) Tile {
 }
 
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
-var soil = NewTile(Point{280, 200}, Point{20, 20}, soilColor)
+var soil = NewTile(Point{2800, 2000}, Point{200, 200}, soilColor)
 
 type Game struct {
 	Persons []*Person
@@ -71,7 +71,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 320, 240
+	return 3200, 2400
 }
 
 func main() {
