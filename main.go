@@ -5,6 +5,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Tile struct {
@@ -64,6 +65,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(p.Position.X-bounds.Dx()/2), float64(p.Position.Y-bounds.Dy()/2))
 		soil.DrawImage(p.Image(), op)
+		if p.IsSelected && p.move.IsActive {
+			vector.StrokeLine(soil.Image, float32(p.Position.X), float32(p.Position.Y), float32(p.move.Destination.X), float32(p.move.Destination.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+		}
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(soil.Position.X), float64(soil.Position.Y))
