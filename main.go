@@ -42,12 +42,15 @@ func (g *Game) Update() error {
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
+		// TODO: Drag & select
 		x, y := ebiten.CursorPosition()
 		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
+		canBeSelected := true
 		for _, p := range g.Persons {
 			p.IsSelected = false
 			if tileClick.In(p.CollisionBounds()) {
-				p.IsSelected = true
+				p.IsSelected = canBeSelected
+				canBeSelected = false
 			}
 		}
 	}
