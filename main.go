@@ -23,13 +23,23 @@ func NewTile(size Point, position Point, color color.Color) Tile {
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
 var soil = NewTile(Point{2800, 2000}, Point{200, 200}, soilColor)
 
+type Selection struct {
+	IsActive bool
+	Start    Point
+}
+
 type Game struct {
-	Persons []*Person
+	Persons   []*Person
+	Selection Selection
 }
 
 func (g *Game) Update() error {
+	x, y := ebiten.CursorPosition()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.Selection.Start = Point{x, y}
+		g.Selection.IsActive = true
+	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-		x, y := ebiten.CursorPosition()
 		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
 		for _, p := range g.Persons {
 			futureBounds := Rectangle{
@@ -42,17 +52,27 @@ func (g *Game) Update() error {
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		// TODO: Drag & select
-		x, y := ebiten.CursorPosition()
 		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
-		canBeSelected := true
-		for _, p := range g.Persons {
-			p.IsSelected = false
-			if tileClick.In(p.CollisionBounds()) {
-				p.IsSelected = canBeSelected
-				canBeSelected = false
+		if g.Selection.IsActive && Distance(g.Selection.Start, Point{x, y}) > 10 {
+			for _, p := range g.Persons {
+				p.IsSelected = false
+				selectionBounds := Rectangle{g.Selection.Start.Sub(soil.Position), tileClick}.Canon()
+				if selectionBounds.Overlaps(p.CollisionBounds()) {
+					p.IsSelected = true
+				}
+			}
+		} else {
+			canBeSelected := true
+			for _, p := range g.Persons {
+				p.IsSelected = false
+				if tileClick.In(p.CollisionBounds()) {
+					p.IsSelected = canBeSelected
+					canBeSelected = false
+				}
 			}
 		}
+		g.Selection.IsActive = false
+
 	}
 	for _, p := range g.Persons {
 		p.Update()
@@ -75,6 +95,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(soil.Position.X), float64(soil.Position.Y))
 	screen.DrawImage(soil.Image, op)
+	if g.Selection.IsActive {
+		x, y := ebiten.CursorPosition()
+		screenClick := Point{x, y}
+		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(screenClick.X-g.Selection.Start.X), float32(screenClick.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -86,7 +111,9 @@ func main() {
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
 	mainPerson := NewPerson(Point{soil.Image.Bounds().Dx() / 2, soil.Image.Bounds().Dy() / 2})
+	nonPlayerPerson := NewPerson(Point{400, 400})
 	game.Persons = append(game.Persons, &mainPerson)
+	game.Persons = append(game.Persons, &nonPlayerPerson)
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)
 	}
