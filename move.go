@@ -1,45 +1,147 @@
 package main
 
 import (
+	"fmt"
 	"math"
+
+	"golang.org/x/exp/slices"
 )
 
 type Move struct {
 	IsActive    bool
 	Origin      Point
 	Destination Point
-	Nodes       []Point
+	Path        []Point
 }
 
-func NewMove(origin Point, destination Point) Move {
-	nodes := []Point{}
+type Node struct {
+	CostFromOrigin    int
+	CostToDestination int
+	Parent            Point
+}
+
+func (n Node) Cost() int {
+	return n.CostFromOrigin + n.CostToDestination
+}
+
+type PathSearch struct {
+	origin      Point
+	destination Point
+	openList    map[Point]Node
+	closedList  map[Point]Node
+	blocked     map[Point]bool
+}
+
+func SearchPath(origin Point, destination Point, blocked map[Point]bool) ([]Point, bool) {
+	search := PathSearch{
+		origin:      origin,
+		destination: destination,
+		openList:    map[Point]Node{},
+		closedList:  map[Point]Node{},
+		blocked:     blocked,
+	}
+	return search.search()
+}
+
+func (s *PathSearch) addNeighbours(point Point, node Node) {
+	if point.X >= 100 {
+		s.consider(Point{point.X - 100, point.Y}, point)
+	}
+	if point.X <= soil.Size.X-100 {
+		s.consider(Point{point.X + 100, point.Y}, point)
+	}
+	if point.Y >= 100 {
+		s.consider(Point{point.X, point.Y - 100}, point)
+	}
+	if point.Y <= soil.Size.Y-100 {
+		s.consider(Point{point.X, point.Y + 100}, point)
+	}
+}
+
+func (s *PathSearch) consider(neighbor Point, point Point) {
+	if s.blocked[neighbor] {
+		return
+	}
+	if _, ok := s.closedList[neighbor]; !ok {
+		node := Node{
+			CostFromOrigin:    s.closedList[point].CostFromOrigin + int(Distance(point, neighbor)),
+			CostToDestination: int(Distance(neighbor, s.destination)),
+			Parent:            point,
+		}
+		existing, ok := s.openList[neighbor]
+		if !ok || existing.Cost() > node.Cost() {
+			s.openList[neighbor] = node
+		}
+	}
+}
+
+// openList must not be empty
+func (s *PathSearch) bestOpenNode() (Point, Node) {
+	bestPoint := Point{}
+	bestNode := Node{}
+	bestCost := math.MaxInt32
+	for point, node := range s.openList {
+		if cost := node.Cost(); cost < bestCost {
+			bestPoint = point
+			bestNode = node
+			bestCost = cost
+		}
+	}
+	return bestPoint, bestNode
+}
+
+func (s *PathSearch) buildPath() []Point {
+	point := s.destination
+	path := []Point{s.destination}
+	node := s.closedList[s.destination]
+	for point != s.origin {
+		point = node.Parent
+		path = append(path, point)
+		node = s.closedList[point]
+	}
+	slices.Reverse(path)
+	return path
+}
+
+func (s *PathSearch) search() ([]Point, bool) {
+	s.openList[s.origin] = Node{CostFromOrigin: 0, CostToDestination: int(Distance(s.origin, s.destination)), Parent: s.origin}
+	point := s.origin
+	var node Node
+	for point != s.destination && len(s.openList) > 0 {
+		point, node = s.bestOpenNode()
+		s.closedList[point] = node
+		delete(s.openList, point)
+		s.addNeighbours(point, node)
+	}
+	if point == s.destination {
+		return s.buildPath(), true
+	}
+	return []Point{}, false
+}
+
+func NewMove(origin Point, destination Point, blocked map[Point]bool) Move {
 	current := Point{
 		origin.X/100*100 + 50,
 		origin.Y/100*100 + 50,
 	}
-	for current != destination {
-		next := current
-		if math.Abs(float64(destination.X-current.X)) > math.Abs(float64(destination.Y-current.Y)) {
-			next.X = current.X + int(math.Copysign(100, float64(destination.X-current.X)))
-		} else {
-			next.Y = current.Y + int(math.Copysign(100, float64(destination.Y-current.Y)))
-		}
-		nodes = append(nodes, next)
-		current = next
+	search, ok := SearchPath(current, destination, blocked)
+	if !ok {
+		fmt.Println("No path found")
+		return Move{IsActive: false}
 	}
-	return Move{IsActive: true, Origin: origin, Destination: destination, Nodes: nodes}
+	return Move{IsActive: true, Origin: origin, Destination: destination, Path: search}
 }
 
 func (m *Move) Update(position Point, speed int) Point {
 	if !m.IsActive {
 		return position
 	}
-	next := m.Nodes[0]
+	next := m.Path[0]
 	if Distance(position, next) < float64(speed) {
 		if next == m.Destination {
 			m.IsActive = false
 		} else {
-			m.Nodes = m.Nodes[1:]
+			m.Path = m.Path[1:]
 		}
 		return next
 	}

@@ -40,8 +40,8 @@ func (p Person) CollisionBounds() Rectangle {
 	}
 }
 
-func (p *Person) MoveTo(destination Point) {
-	p.move = NewMove(p.Position, destination)
+func (p *Person) MoveTo(destination Point, blocked map[Point]bool) {
+	p.move = NewMove(p.Position, destination, blocked)
 }
 
 func (p *Person) Update() {
