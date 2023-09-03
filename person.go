@@ -41,9 +41,9 @@ func (p Person) CollisionBounds() Rectangle {
 }
 
 func (p *Person) MoveTo(destination Point) {
-	p.move = Move{IsActive: true, Destination: destination}
+	p.move = NewMove(p.Position, destination)
 }
 
 func (p *Person) Update() {
-	p.Position = p.move.Update(p.Position, 30)
+	p.Position = p.move.Update(p.Position, 10)
 }

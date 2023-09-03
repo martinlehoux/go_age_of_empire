@@ -40,14 +40,19 @@ func (g *Game) Update() error {
 		g.Selection.IsActive = true
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-		tileClick := Point{x - soil.Position.X, y - soil.Position.Y}
+		destination := Point{
+			(x-soil.Position.X)/100*100 + 50,
+			(y-soil.Position.Y)/100*100 + 50,
+		}
 		for _, p := range g.Persons {
-			futureBounds := Rectangle{
-				tileClick.Sub(p.size.Div(2)),
-				tileClick.Add(p.size.Div(2)),
-			}
-			if p.IsSelected && futureBounds.In(soil.Bounds()) {
-				p.MoveTo(tileClick)
+			if p.IsSelected {
+				futureBounds := Rectangle{
+					destination.Sub(p.size.Div(2)),
+					destination.Add(p.size.Div(2)),
+				}
+				if futureBounds.In(soil.Bounds()) {
+					p.MoveTo(destination)
+				}
 			}
 		}
 	}
