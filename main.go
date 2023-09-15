@@ -2,10 +2,12 @@ package main
 
 import (
 	"image/color"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"golang.org/x/exp/slog"
 )
 
 type Action string
@@ -14,38 +16,22 @@ const (
 	Selecting Action = "selecting"
 )
 
-type Tile struct {
-	*ebiten.Image
-	Size     Point
-	Position Point
-}
-
-func NewTile(size Point, position Point, color color.Color) Tile {
-	image := ebiten.NewImage(int(size.X), int(size.Y))
-	image.Fill(color)
-	return Tile{Size: size, Position: position, Image: image}
-}
-func (t Tile) CollisionBounds() Rectangle {
-	return Rectangle{t.Position, t.Position.Add(t.Size)}
-}
-
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
-var soil = NewTile(Point{2800, 2000}, Point{200, 200}, soilColor)
 
-type Selection struct {
+type GlobalSelection struct {
 	IsActive bool
 	Start    Point
 }
 
 type Game struct {
-	Persons       []*Person
+	Entities      []*Entity
 	CurrentAction Action
-	Selection     Selection
+	Selection     GlobalSelection
 }
 
-func (g *Game) getBlocked() map[Point]bool {
+func (g *Game) getMoveMap() MoveMap {
 	blocked := map[Point]bool{}
-	return blocked
+	return MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
 func (g *Game) updateSelecting(cursor Point) {
@@ -54,34 +40,22 @@ func (g *Game) updateSelecting(cursor Point) {
 		g.Selection.IsActive = true
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-		destination := cursor.Sub(soil.Position).Div(100).Mul(100).Add(Point{50, 50})
-		for _, p := range g.Persons {
-			if p.IsSelected {
-				futureBounds := Rectangle{
-					destination.Sub(p.size.Div(2)),
-					destination.Add(p.size.Div(2)),
-				}
-				if futureBounds.In(soil.Bounds()) {
-					p.MoveTo(destination, g.getBlocked())
-				}
-			}
+		destination := cursor.Div(100).Mul(100)
+		slog.Info("destination", slog.String("destination", destination.String()))
+		moveMap := g.getMoveMap()
+		for _, e := range g.Entities {
+			e.StartMove(destination, moveMap)
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if g.Selection.IsActive && Distance(g.Selection.Start, cursor) > 10 {
-			for _, p := range g.Persons {
-				p.IsSelected = false
-				selectionBounds := Rectangle{g.Selection.Start.Sub(soil.Position), cursor.Sub(soil.Position)}.Canon()
-				if selectionBounds.Overlaps(p.CollisionBounds()) {
-					p.IsSelected = true
-				}
+			for _, e := range g.Entities {
+				e.SelectMultiple(cursor, g.Selection)
 			}
 		} else {
 			canBeSelected := true
-			for _, p := range g.Persons {
-				p.IsSelected = false
-				if cursor.Sub(soil.Position).In(p.CollisionBounds()) {
-					p.IsSelected = canBeSelected
+			for _, e := range g.Entities {
+				if e.SelectSingle(cursor, canBeSelected) {
 					canBeSelected = false
 				}
 			}
@@ -100,35 +74,22 @@ func (g *Game) Update() error {
 	case Selecting:
 		g.updateSelecting(cursor)
 	}
-	for _, p := range g.Persons {
-		p.Update()
+	for _, e := range g.Entities {
+		e.UpdateMove()
 	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	x, y := ebiten.CursorPosition()
-	screenClick := Point{x, y}
-	screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
-	soil.Fill(soilColor)
-	for _, p := range g.Persons {
-		bounds := p.Image().Bounds()
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(p.Position.X-bounds.Dx()/2), float64(p.Position.Y-bounds.Dy()/2))
-		soil.DrawImage(p.Image(), op)
-		if p.IsSelected && p.move.IsActive {
-			last := p.Position
-			for _, point := range p.move.Path {
-				vector.StrokeLine(soil.Image, float32(last.X), float32(last.Y), float32(point.X), float32(point.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
-				last = point
-			}
-		}
+	cursor := Point{x, y}
+	screen.Fill(soilColor)
+	for _, e := range g.Entities {
+		Draw(screen, e)
+		DrawMove(screen, e)
 	}
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(soil.Position.X), float64(soil.Position.Y))
-	screen.DrawImage(soil.Image, op)
 	if g.Selection.IsActive {
-		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(screenClick.X-g.Selection.Start.X), float32(screenClick.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(cursor.X-g.Selection.Start.X), float32(cursor.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 	}
 }
 
@@ -137,13 +98,28 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(logHandler))
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
-	mainPerson := NewPerson(Point{soil.Image.Bounds().Dx() / 2, soil.Image.Bounds().Dy() / 2})
-	nonPlayerPerson := NewPerson(Point{450, 450})
-	game.Persons = append(game.Persons, &mainPerson)
-	game.Persons = append(game.Persons, &nonPlayerPerson)
+	ironImage := NewColorImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
+	ironSelectedImage := NewHaloImage(ironImage, color.RGBA{0xff, 0xff, 0xff, 0xff}, 10)
+	ironMine := Entity{
+		Position:  C(Point{1050, 1050}),
+		Image:     C(ironImage),
+		Selection: C(Selection{IsSelected: false, SelectedImage: ironSelectedImage}),
+	}
+	game.Entities = append(game.Entities, &ironMine)
+	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	personSelectedImage := NewHaloImage(personImage, color.RGBA{0xff, 0x00, 0x00, 0xff}, 10)
+	alterPerson := Entity{
+		Position:  C(Point{2050, 2050}),
+		Image:     C(personImage),
+		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
+		Move:      C(Move{IsActive: false}),
+	}
+	game.Entities = append(game.Entities, &alterPerson)
 	game.CurrentAction = Selecting
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)

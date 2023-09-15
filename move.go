@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"image/color"
 	"math"
 
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/exp/slices"
+	"golang.org/x/exp/slog"
 )
 
 type Move struct {
@@ -24,21 +27,27 @@ func (n Node) Cost() int {
 	return n.CostFromOrigin + n.CostToDestination
 }
 
+type MoveMap struct {
+	Width   int
+	Height  int
+	Blocked map[Point]bool
+}
+
 type PathSearch struct {
 	origin      Point
 	destination Point
 	openList    map[Point]Node
 	closedList  map[Point]Node
-	blocked     map[Point]bool
+	moveMap     MoveMap
 }
 
-func SearchPath(origin Point, destination Point, blocked map[Point]bool) ([]Point, bool) {
+func SearchPath(origin Point, destination Point, moveMap MoveMap) ([]Point, bool) {
 	search := PathSearch{
 		origin:      origin,
 		destination: destination,
 		openList:    map[Point]Node{},
 		closedList:  map[Point]Node{},
-		blocked:     blocked,
+		moveMap:     moveMap,
 	}
 	return search.search()
 }
@@ -47,19 +56,19 @@ func (s *PathSearch) addNeighbours(point Point, node Node) {
 	if point.X >= 100 {
 		s.consider(Point{point.X - 100, point.Y}, point)
 	}
-	if point.X <= soil.Size.X-100 {
+	if point.X <= s.moveMap.Width-100 {
 		s.consider(Point{point.X + 100, point.Y}, point)
 	}
 	if point.Y >= 100 {
 		s.consider(Point{point.X, point.Y - 100}, point)
 	}
-	if point.Y <= soil.Size.Y-100 {
+	if point.Y <= s.moveMap.Height-100 {
 		s.consider(Point{point.X, point.Y + 100}, point)
 	}
 }
 
 func (s *PathSearch) consider(neighbor Point, point Point) {
-	if s.blocked[neighbor] {
+	if s.moveMap.Blocked[neighbor] {
 		return
 	}
 	if _, ok := s.closedList[neighbor]; !ok {
@@ -119,14 +128,14 @@ func (s *PathSearch) search() ([]Point, bool) {
 	return []Point{}, false
 }
 
-func NewMove(origin Point, destination Point, blocked map[Point]bool) Move {
+func NewMove(origin Point, destination Point, moveMap MoveMap) Move {
 	current := Point{
-		origin.X/100*100 + 50,
-		origin.Y/100*100 + 50,
+		origin.X / 100 * 100,
+		origin.Y / 100 * 100,
 	}
-	search, ok := SearchPath(current, destination, blocked)
+	search, ok := SearchPath(current, destination, moveMap)
 	if !ok {
-		fmt.Println("No path found")
+		slog.Info("no path found", slog.String("destination", destination.String()))
 		return Move{IsActive: false}
 	}
 	return Move{IsActive: true, Origin: origin, Destination: destination, Path: search}
@@ -140,6 +149,7 @@ func (m *Move) Update(position Point, speed int) Point {
 	if Distance(position, next) < float64(speed) {
 		if next == m.Destination {
 			m.IsActive = false
+			slog.Info("move finished", slog.String("destintation", m.Destination.String()))
 		} else {
 			m.Path = m.Path[1:]
 		}
@@ -148,4 +158,33 @@ func (m *Move) Update(position Point, speed int) Point {
 	remainingMove := next.Sub(position)
 	delta := remainingMove.Mul(speed).Div(int(Length(remainingMove)))
 	return position.Add(delta)
+}
+
+func (e *Entity) StartMove(destination Point, moveMap MoveMap) {
+	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
+		if e.Selection.Value.IsSelected {
+			e.Move.Value = NewMove(e.Position.Value, destination, moveMap)
+			slog.Info("entity starting move", slog.String("destination", destination.String()))
+		}
+	}
+}
+
+func (e *Entity) UpdateMove() {
+	if e.Move.IsEnabled && e.Position.IsEnabled {
+		e.Position.Value = e.Move.Value.Update(e.Position.Value, 10)
+	}
+}
+
+func DrawMove(screen *ebiten.Image, e *Entity) {
+	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
+		if e.Selection.Value.IsSelected && e.Move.Value.IsActive {
+			last := e.Position.Value
+			dx := +e.Image.Value.Bounds().Dx() / 2
+			dy := +e.Image.Value.Bounds().Dy() / 2
+			for _, point := range e.Move.Value.Path {
+				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+				last = point
+			}
+		}
+	}
 }
