@@ -31,6 +31,11 @@ type Game struct {
 
 func (g *Game) getMoveMap() MoveMap {
 	blocked := map[Point]bool{}
+	for _, e := range g.Entities {
+		if e.Position.IsEnabled {
+			blocked[e.Position.Value] = true
+		}
+	}
 	return MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
@@ -106,7 +111,7 @@ func main() {
 	ironImage := NewColorImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
 	ironSelectedImage := NewHaloImage(ironImage, color.RGBA{0xff, 0xff, 0xff, 0xff}, 10)
 	ironMine := Entity{
-		Position:  C(Point{1050, 1050}),
+		Position:  C(Point{1000, 1000}),
 		Image:     C(ironImage),
 		Selection: C(Selection{IsSelected: false, SelectedImage: ironSelectedImage}),
 	}
@@ -114,7 +119,7 @@ func main() {
 	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	personSelectedImage := NewHaloImage(personImage, color.RGBA{0xff, 0x00, 0x00, 0xff}, 10)
 	alterPerson := Entity{
-		Position:  C(Point{2050, 2050}),
+		Position:  C(Point{2000, 2000}),
 		Image:     C(personImage),
 		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
 		Move:      C(Move{IsActive: false}),
