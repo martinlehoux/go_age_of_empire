@@ -80,7 +80,7 @@ func (g *Game) Update() error {
 		g.updateSelecting(cursor)
 	}
 	for _, e := range g.Entities {
-		e.UpdateMove()
+		e.UpdateMove(g.getMoveMap())
 	}
 	return nil
 }
@@ -118,13 +118,20 @@ func main() {
 	game.Entities = append(game.Entities, &ironMine)
 	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	personSelectedImage := NewHaloImage(personImage, color.RGBA{0xff, 0x00, 0x00, 0xff}, 10)
-	alterPerson := Entity{
+	person1 := Entity{
 		Position:  C(Point{2000, 2000}),
 		Image:     C(personImage),
 		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
 		Move:      C(Move{IsActive: false}),
 	}
-	game.Entities = append(game.Entities, &alterPerson)
+	game.Entities = append(game.Entities, &person1)
+	person2 := Entity{
+		Position:  C(Point{2200, 2200}),
+		Image:     C(personImage),
+		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
+		Move:      C(Move{IsActive: false}),
+	}
+	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)

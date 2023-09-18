@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 
@@ -10,11 +11,19 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+const MOVE_SPEED = 10.0
+
+type Path []Point
+
+func (p Path) String() string {
+	return fmt.Sprintf("%s -> %s", p[0].String(), p[len(p)-1].String())
+}
+
 type Move struct {
 	IsActive    bool
 	Origin      Point
 	Destination Point
-	Path        []Point
+	Path        Path
 }
 
 type Node struct {
@@ -41,7 +50,7 @@ type PathSearch struct {
 	moveMap     MoveMap
 }
 
-func SearchPath(origin Point, destination Point, moveMap MoveMap) ([]Point, bool) {
+func SearchPath(origin Point, destination Point, moveMap MoveMap) (Path, bool) {
 	search := PathSearch{
 		origin:      origin,
 		destination: destination,
@@ -99,9 +108,9 @@ func (s *PathSearch) bestOpenNode() (Point, Node) {
 	return bestPoint, bestNode
 }
 
-func (s *PathSearch) buildPath() []Point {
+func (s *PathSearch) buildPath() Path {
 	point := s.destination
-	path := []Point{s.destination}
+	path := Path{s.destination}
 	node := s.closedList[s.destination]
 	for point != s.origin {
 		point = node.Parent
@@ -112,7 +121,7 @@ func (s *PathSearch) buildPath() []Point {
 	return path
 }
 
-func (s *PathSearch) search() ([]Point, bool) {
+func (s *PathSearch) search() (Path, bool) {
 	s.openList[s.origin] = Node{CostFromOrigin: 0, CostToDestination: int(Distance(s.origin, s.destination)), Parent: s.origin}
 	point := s.origin
 	var node Node
@@ -125,7 +134,7 @@ func (s *PathSearch) search() ([]Point, bool) {
 	if point == s.destination {
 		return s.buildPath(), true
 	}
-	return []Point{}, false
+	return Path{}, false
 }
 
 func NewMove(origin Point, destination Point, moveMap MoveMap) Move {
@@ -133,15 +142,15 @@ func NewMove(origin Point, destination Point, moveMap MoveMap) Move {
 		origin.X / 100 * 100,
 		origin.Y / 100 * 100,
 	}
-	search, ok := SearchPath(current, destination, moveMap)
+	path, ok := SearchPath(current, destination, moveMap)
 	if !ok {
 		slog.Info("no path found", slog.String("destination", destination.String()))
 		return Move{IsActive: false}
 	}
-	return Move{IsActive: true, Origin: origin, Destination: destination, Path: search}
+	return Move{IsActive: true, Origin: origin, Destination: destination, Path: path}
 }
 
-func (m *Move) Update(position Point, speed int) Point {
+func (m *Move) Update(position Point, speed int, moveMap MoveMap) Point {
 	if !m.IsActive {
 		return position
 	}
@@ -151,7 +160,14 @@ func (m *Move) Update(position Point, speed int) Point {
 			m.IsActive = false
 			slog.Info("move finished", slog.String("destintation", m.Destination.String()))
 		} else {
-			m.Path = m.Path[1:]
+			slog.Info("next joined, searching new path", slog.String("next", next.String()))
+			path, ok := SearchPath(next, m.Destination, moveMap)
+			if !ok {
+				slog.Info("no path found", slog.String("destination", m.Destination.String()))
+				m.IsActive = false
+			} else {
+				m.Path = path
+			}
 		}
 		return next
 	}
@@ -169,9 +185,36 @@ func (e *Entity) StartMove(destination Point, moveMap MoveMap) {
 	}
 }
 
-func (e *Entity) UpdateMove() {
+func (e *Entity) moveToward(destination Point) {
+	remainingMove := destination.Sub(e.Position.Value)
+	delta := remainingMove.Mul(MOVE_SPEED).Div(int(Length(remainingMove)))
+	e.Position.Value = e.Position.Value.Add(delta)
+}
+
+func (e *Entity) UpdateMove(moveMap MoveMap) {
 	if e.Move.IsEnabled && e.Position.IsEnabled {
-		e.Position.Value = e.Move.Value.Update(e.Position.Value, 10)
+		position := e.Position.Value
+		if !e.Move.Value.IsActive {
+			return
+		}
+		next := e.Move.Value.Path[1]
+		if Distance(position, next) < MOVE_SPEED {
+			e.Position.Value = next
+			if next == e.Move.Value.Destination {
+				e.Move.Value.IsActive = false
+				slog.Info("move finished", slog.String("destintation", e.Move.Value.Destination.String()))
+			} else {
+				path, ok := SearchPath(next, e.Move.Value.Destination, moveMap)
+				if !ok {
+					slog.Info("no path found", slog.String("destination", e.Move.Value.Destination.String()))
+					e.Move.Value.IsActive = false
+				} else {
+					e.Move.Value.Path = path
+				}
+			}
+		} else {
+			e.moveToward(next)
+		}
 	}
 }
 
@@ -181,7 +224,7 @@ func DrawMove(screen *ebiten.Image, e *Entity) {
 			last := e.Position.Value
 			dx := +e.Image.Value.Bounds().Dx() / 2
 			dy := +e.Image.Value.Bounds().Dy() / 2
-			for _, point := range e.Move.Value.Path {
+			for _, point := range e.Move.Value.Path[1:] {
 				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 				last = point
 			}
