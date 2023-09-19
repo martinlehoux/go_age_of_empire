@@ -39,7 +39,7 @@ func (g *Game) getMoveMap() MoveMap {
 	return MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
-func (g *Game) updateSelecting(cursor Point) {
+func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Selection.Start = cursor
 		g.Selection.IsActive = true
@@ -47,7 +47,6 @@ func (g *Game) updateSelecting(cursor Point) {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
 		slog.Info("destination", slog.String("destination", destination.String()))
-		moveMap := g.getMoveMap()
 		for _, e := range g.Entities {
 			e.StartMove(destination, moveMap)
 		}
@@ -75,12 +74,13 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
 		g.CurrentAction = Selecting
 	}
+	moveMap := g.getMoveMap()
 	switch g.CurrentAction {
 	case Selecting:
-		g.updateSelecting(cursor)
+		g.updateSelecting(cursor, moveMap)
 	}
 	for _, e := range g.Entities {
-		e.UpdateMove(g.getMoveMap())
+		e.UpdateMove(moveMap)
 	}
 	return nil
 }
