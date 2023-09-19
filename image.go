@@ -11,11 +11,3 @@ func NewColorImage(size Point, color color.Color) *ebiten.Image {
 	image.Fill(color)
 	return image
 }
-
-func NewHaloImage(sourceImage *ebiten.Image, color color.Color, width int) *ebiten.Image {
-	image := NewColorImage(sourceImage.Bounds().Size().Add(Point{2 * width, 2 * width}), color)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(width), float64(width))
-	image.DrawImage(sourceImage, op)
-	return image
-}

@@ -29,11 +29,6 @@ func Draw(screen *ebiten.Image, e *Entity) {
 	if e.Image.IsEnabled && e.Position.IsEnabled {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(e.Position.Value.X), float64(e.Position.Value.Y))
-		if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-			op.GeoM.Translate(-10, -10)
-			screen.DrawImage(e.Selection.Value.SelectedImage, op)
-		} else {
-			screen.DrawImage(e.Image.Value, op)
-		}
+		screen.DrawImage(e.Image.Value, op)
 	}
 }

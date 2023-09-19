@@ -1,3 +1,5 @@
+## TODO
+
 ```go
 func (g \*Game) updatePlacingWall(cursor Point) {
   if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {

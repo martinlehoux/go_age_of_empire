@@ -91,6 +91,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(soilColor)
 	for _, e := range g.Entities {
 		Draw(screen, e)
+	}
+	for _, e := range g.Entities {
+		DrawSelection(screen, e)
+	}
+	for _, e := range g.Entities {
 		DrawMove(screen, e)
 	}
 	if g.Selection.IsActive {
@@ -109,26 +114,24 @@ func main() {
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
 	ironImage := NewColorImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
-	ironSelectedImage := NewHaloImage(ironImage, color.RGBA{0xff, 0xff, 0xff, 0xff}, 10)
 	ironMine := Entity{
 		Position:  C(Point{1000, 1000}),
 		Image:     C(ironImage),
-		Selection: C(Selection{IsSelected: false, SelectedImage: ironSelectedImage}),
+		Selection: C(Selection{IsSelected: false}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
 	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
-	personSelectedImage := NewHaloImage(personImage, color.RGBA{0xff, 0x00, 0x00, 0xff}, 10)
 	person1 := Entity{
 		Position:  C(Point{2000, 2000}),
 		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
+		Selection: C(Selection{IsSelected: false}),
 		Move:      C(Move{IsActive: false}),
 	}
 	game.Entities = append(game.Entities, &person1)
 	person2 := Entity{
 		Position:  C(Point{2200, 2200}),
 		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false, SelectedImage: personSelectedImage}),
+		Selection: C(Selection{IsSelected: false}),
 		Move:      C(Move{IsActive: false}),
 	}
 	game.Entities = append(game.Entities, &person2)
