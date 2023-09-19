@@ -14,6 +14,7 @@ type Action string
 
 const (
 	Selecting Action = "selecting"
+	Patroling Action = "patroling"
 )
 
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
@@ -68,19 +69,37 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	}
 }
 
+func (g *Game) updatePatroling(cursor Point) {
+	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
+		destination := cursor.Div(100).Mul(100)
+		for _, e := range g.Entities {
+			Patrol(e, destination)
+		}
+		g.CurrentAction = Selecting
+	}
+}
+
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
 	cursor := Point{x, y}
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
 		g.CurrentAction = Selecting
+		slog.Info("selecting action")
+	}
+	if inpututil.IsKeyJustReleased(ebiten.KeyA) { // Should be Q
+		g.CurrentAction = Patroling
+		slog.Info("patroling action")
 	}
 	moveMap := g.getMoveMap()
 	switch g.CurrentAction {
 	case Selecting:
 		g.updateSelecting(cursor, moveMap)
+	case Patroling:
+		g.updatePatroling(cursor)
 	}
 	for _, e := range g.Entities {
 		e.UpdateMove(moveMap)
+		e.UpdateOrder(g)
 	}
 	return nil
 }
@@ -120,12 +139,14 @@ func main() {
 		Selection: C(Selection{IsSelected: false}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
+	var order Order
 	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	person1 := Entity{
 		Position:  C(Point{2000, 2000}),
 		Image:     C(personImage),
 		Selection: C(Selection{IsSelected: false}),
 		Move:      C(Move{IsActive: false}),
+		Order:     C(order),
 	}
 	game.Entities = append(game.Entities, &person1)
 	person2 := Entity{
@@ -133,6 +154,7 @@ func main() {
 		Image:     C(personImage),
 		Selection: C(Selection{IsSelected: false}),
 		Move:      C(Move{IsActive: false}),
+		Order:     C(order),
 	}
 	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting

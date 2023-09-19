@@ -16,6 +16,7 @@ type Entity struct {
 	Image     Component[*ebiten.Image]
 	Selection Component[Selection]
 	Move      Component[Move]
+	Order     Component[Order]
 }
 
 func (e Entity) Bounds() Rectangle {
