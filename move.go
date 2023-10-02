@@ -61,7 +61,7 @@ func SearchPath(origin Point, destination Point, moveMap MoveMap) (Path, bool) {
 	return search.search()
 }
 
-func (s *PathSearch) addNeighbours(point Point, node Node) {
+func (s *PathSearch) addNeighbors(point Point, node Node) {
 	if point.X >= 100 {
 		s.consider(Point{point.X - 100, point.Y}, point)
 	}
@@ -129,7 +129,7 @@ func (s *PathSearch) search() (Path, bool) {
 		point, node = s.bestOpenNode()
 		s.closedList[point] = node
 		delete(s.openList, point)
-		s.addNeighbours(point, node)
+		s.addNeighbors(point, node)
 	}
 	if point == s.destination {
 		return s.buildPath(), true
@@ -147,33 +147,16 @@ func NewMove(origin Point, destination Point, moveMap MoveMap) Move {
 		slog.Info("no path found", slog.String("destination", destination.String()))
 		return Move{IsActive: false}
 	}
-	return Move{IsActive: true, Origin: origin, Destination: destination, Path: path}
+	return Move{IsActive: true, Origin: origin, Destination: destination, Path: path[1:]}
 }
 
-func (m *Move) Update(position Point, speed int, moveMap MoveMap) Point {
-	if !m.IsActive {
-		return position
-	}
-	next := m.Path[0]
-	if Distance(position, next) < float64(speed) {
-		if next == m.Destination {
-			m.IsActive = false
-			slog.Info("move finished", slog.String("destintation", m.Destination.String()))
-		} else {
-			slog.Info("next joined, searching new path", slog.String("next", next.String()))
-			path, ok := SearchPath(next, m.Destination, moveMap)
-			if !ok {
-				slog.Info("no path found", slog.String("destination", m.Destination.String()))
-				m.IsActive = false
-			} else {
-				m.Path = path
-			}
+func (p *Path) isValid(moveMap MoveMap) bool {
+	for _, point := range *p {
+		if moveMap.Blocked[point] {
+			return false
 		}
-		return next
 	}
-	remainingMove := next.Sub(position)
-	delta := remainingMove.Mul(speed).Div(int(Length(remainingMove)))
-	return position.Add(delta)
+	return true
 }
 
 func (e *Entity) StartMove(destination Point, moveMap MoveMap) {
@@ -197,19 +180,22 @@ func (e *Entity) UpdateMove(moveMap MoveMap) {
 		if !e.Move.Value.IsActive {
 			return
 		}
-		next := e.Move.Value.Path[1]
+		next := e.Move.Value.Path[0]
 		if Distance(position, next) < MOVE_SPEED {
 			e.Position.Value = next
+			remainingPath := e.Move.Value.Path[1:]
 			if next == e.Move.Value.Destination {
 				e.Move.Value.IsActive = false
-				slog.Info("move finished", slog.String("destintation", e.Move.Value.Destination.String()))
+				slog.Info("move finished", slog.String("destination", e.Move.Value.Destination.String()))
+			} else if remainingPath.isValid(moveMap) {
+				e.Move.Value.Path = remainingPath
 			} else {
 				path, ok := SearchPath(next, e.Move.Value.Destination, moveMap)
 				if !ok {
 					slog.Info("no path found", slog.String("destination", e.Move.Value.Destination.String()))
 					e.Move.Value.IsActive = false
 				} else {
-					e.Move.Value.Path = path
+					e.Move.Value.Path = path[1:]
 				}
 			}
 		} else {

@@ -1,6 +1,8 @@
 package main
 
-import "golang.org/x/exp/slog"
+import (
+	"golang.org/x/exp/slog"
+)
 
 type Order interface {
 	Update(e *Entity, g *Game)
@@ -36,7 +38,7 @@ func Patrol(e *Entity, destination Point) Order {
 	if e.Selection.IsEnabled && e.Position.IsEnabled && e.Move.IsEnabled && e.Order.IsEnabled {
 		if e.Selection.Value.IsSelected {
 			origin := e.Position.Value
-			slog.Info("patroling between", slog.String("origin", origin.String()), slog.String("destination", destination.String()))
+			slog.Info("patrolling between", slog.String("origin", origin.String()), slog.String("destination", destination.String()))
 			e.Order.Value = &PatrolOrder{origin: origin, destination: destination}
 		}
 	}

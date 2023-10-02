@@ -13,8 +13,8 @@ import (
 type Action string
 
 const (
-	Selecting Action = "selecting"
-	Patroling Action = "patroling"
+	Selecting  Action = "selecting"
+	Patrolling Action = "patrolling"
 )
 
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
@@ -69,7 +69,7 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	}
 }
 
-func (g *Game) updatePatroling(cursor Point) {
+func (g *Game) updatePatrolling(cursor Point) {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
 		for _, e := range g.Entities {
@@ -87,15 +87,15 @@ func (g *Game) Update() error {
 		slog.Info("selecting action")
 	}
 	if inpututil.IsKeyJustReleased(ebiten.KeyA) { // Should be Q
-		g.CurrentAction = Patroling
-		slog.Info("patroling action")
+		g.CurrentAction = Patrolling
+		slog.Info("patrolling action")
 	}
 	moveMap := g.getMoveMap()
 	switch g.CurrentAction {
 	case Selecting:
 		g.updateSelecting(cursor, moveMap)
-	case Patroling:
-		g.updatePatroling(cursor)
+	case Patrolling:
+		g.updatePatrolling(cursor)
 	}
 	for _, e := range g.Entities {
 		e.UpdateMove(moveMap)

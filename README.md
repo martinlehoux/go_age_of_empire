@@ -1,3 +1,7 @@
+## Debugging
+
+- Restart after kernel update until `glxinfo | grep "OpenGL version"` works
+
 ## TODO
 
 ```go
