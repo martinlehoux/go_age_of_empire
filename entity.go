@@ -12,11 +12,14 @@ func C[T any](t T) Component[T] {
 }
 
 type Entity struct {
-	Position  Component[Point]
-	Image     Component[*ebiten.Image]
-	Selection Component[Selection]
-	Move      Component[Move]
-	Order     Component[Order]
+	Position         Component[Point]
+	Image            Component[*ebiten.Image]
+	Selection        Component[Selection]
+	Move             Component[Move]
+	Order            Component[Order]
+	ResourceGatherer Component[ResourceGatherer]
+	ResourceSource   Component[ResourceSource]
+	ResourceStorage  Component[ResourceStorage]
 }
 
 func (e Entity) Bounds() Rectangle {

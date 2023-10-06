@@ -19,3 +19,12 @@ func Length(p Point) float64 {
 func Normalize(p Point) Point {
 	return p.Div(int(Length(p)))
 }
+
+func AdjacentPoints(from Point) []Point {
+	return []Point{
+		from.Add(Point{X: 0, Y: -100}),
+		from.Add(Point{X: 0, Y: 100}),
+		from.Add(Point{X: -100, Y: 0}),
+		from.Add(Point{X: 100, Y: 0}),
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	_ "image/jpeg"
+	"math"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -42,6 +43,23 @@ func (g *Game) getMoveMap() MoveMap {
 	return MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
+func (g *Game) Closest(from Point, candidates []Point) (Point, int) {
+	var closest Point
+	closestDistance := math.MaxInt
+	moveMap := g.getMoveMap()
+	for _, dest := range candidates {
+		path, ok := SearchPath(from, dest, moveMap)
+		if !ok {
+			continue
+		}
+		if len(path) < closestDistance {
+			closest = dest
+			closestDistance = len(path)
+		}
+	}
+	return closest, closestDistance
+}
+
 func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Selection.Start = cursor
@@ -49,10 +67,21 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
+		var entityAtDestination *Entity
+		for _, e := range g.Entities {
+			if e.Position.IsEnabled && e.Position.Value == destination {
+				entityAtDestination = e
+				break
+			}
+		}
 		slog.Info("destination", slog.String("destination", destination.String()))
 		for _, e := range g.Entities {
 			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-				e.StartMove(destination, moveMap)
+				if entityAtDestination != nil && entityAtDestination.ResourceSource.IsEnabled {
+					Gather(e, entityAtDestination, g)
+				} else {
+					e.StartMove(destination, moveMap)
+				}
 			}
 		}
 	}
@@ -147,30 +176,38 @@ func main() {
 	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{}
 	ironImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
-	ironHaloImage := NewStrokeRectangleImage(Point{110, 110}, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	ironMine := Entity{
-		Position:  C(Point{1000, 1000}),
-		Image:     C(ironImage),
-		Selection: C(Selection{IsSelected: false, Halo: ironHaloImage}),
+		Position:       C(Point{1000, 1000}),
+		Image:          C(ironImage),
+		ResourceSource: C(ResourceSource{Remaining: 1000}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
+	storageImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
+	storage := Entity{
+		Position:        C(Point{1000, 2000}),
+		Image:           C(storageImage),
+		ResourceStorage: C(ResourceStorage{}),
+	}
+	game.Entities = append(game.Entities, &storage)
 	var order Order
 	personImage := NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	person1 := Entity{
-		Position:  C(Point{2000, 2000}),
-		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false, Halo: personSelectionHalo}),
-		Move:      C(Move{IsActive: false}),
-		Order:     C(order),
+		Position:         C(Point{2000, 2000}),
+		Image:            C(personImage),
+		Selection:        C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Move:             C(Move{IsActive: false}),
+		Order:            C(order),
+		ResourceGatherer: C(ResourceGatherer{MaxCapacity: 15}),
 	}
 	game.Entities = append(game.Entities, &person1)
 	person2 := Entity{
-		Position:  C(Point{2200, 2200}),
-		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false, Halo: personSelectionHalo}),
-		Move:      C(Move{IsActive: false}),
-		Order:     C(order),
+		Position:         C(Point{2200, 2200}),
+		Image:            C(personImage),
+		Selection:        C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Move:             C(Move{IsActive: false}),
+		Order:            C(order),
+		ResourceGatherer: C(ResourceGatherer{MaxCapacity: 15}),
 	}
 	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting
