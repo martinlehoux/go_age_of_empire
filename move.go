@@ -210,7 +210,7 @@ func DrawMove(screen *ebiten.Image, e *Entity) {
 			last := e.Position.Value
 			dx := +e.Image.Value.Bounds().Dx() / 2
 			dy := +e.Image.Value.Bounds().Dy() / 2
-			for _, point := range e.Move.Value.Path[1:] {
+			for _, point := range e.Move.Value.Path {
 				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 				last = point
 			}
