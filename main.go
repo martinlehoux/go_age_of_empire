@@ -1,7 +1,9 @@
 package main
 
 import (
+	"image"
 	"image/color"
+	_ "image/jpeg"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -133,6 +135,16 @@ func main() {
 	slog.SetDefault(slog.New(logHandler))
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Age of Empire")
+	icon, err := os.Open("icon-crop.jpg")
+	if err != nil {
+		panic(err)
+	}
+	defer icon.Close()
+	iconImg, _, err := image.Decode(icon)
+	if err != nil {
+		panic(err)
+	}
+	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{}
 	ironImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
 	ironHaloImage := NewStrokeRectangleImage(Point{110, 110}, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
