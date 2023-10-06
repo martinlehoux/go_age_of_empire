@@ -1,15 +1,15 @@
 package main
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/exp/slog"
 )
 
+const SELECTION_HALO_SIZE = 10
+
 type Selection struct {
 	IsSelected bool
+	Halo       *ebiten.Image
 }
 
 func (e *Entity) SelectMultiple(cursor Point, selection GlobalSelection) {
@@ -38,7 +38,9 @@ func (e *Entity) SelectSingle(cursor Point, canBeSelected bool) bool {
 func DrawSelection(screen *ebiten.Image, e *Entity) {
 	if e.Image.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
 		if e.Selection.Value.IsSelected {
-			vector.StrokeRect(screen, float32(e.Position.Value.X-5), float32(e.Position.Value.Y-5), 110, 110, 10, color.RGBA{0xff, 0x00, 0x00, 0xff}, false)
+			opt := &ebiten.DrawImageOptions{}
+			opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_SIZE/2), float64(e.Position.Value.Y-SELECTION_HALO_SIZE/2))
+			screen.DrawImage(e.Selection.Value.Halo, opt)
 		}
 	}
 }

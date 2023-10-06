@@ -132,19 +132,21 @@ func main() {
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Age of Empire")
 	game := &Game{}
-	ironImage := NewColorImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
+	ironImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
+	ironHaloImage := NewStrokeRectangleImage(Point{110, 110}, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	ironMine := Entity{
 		Position:  C(Point{1000, 1000}),
 		Image:     C(ironImage),
-		Selection: C(Selection{IsSelected: false}),
+		Selection: C(Selection{IsSelected: false, Halo: ironHaloImage}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
 	var order Order
-	personImage := NewColorImage(Point{100, 100}, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	personImage := NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	person1 := Entity{
 		Position:  C(Point{2000, 2000}),
 		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false}),
+		Selection: C(Selection{IsSelected: false, Halo: personSelectionHalo}),
 		Move:      C(Move{IsActive: false}),
 		Order:     C(order),
 	}
@@ -152,7 +154,7 @@ func main() {
 	person2 := Entity{
 		Position:  C(Point{2200, 2200}),
 		Image:     C(personImage),
-		Selection: C(Selection{IsSelected: false}),
+		Selection: C(Selection{IsSelected: false, Halo: personSelectionHalo}),
 		Move:      C(Move{IsActive: false}),
 		Order:     C(order),
 	}
