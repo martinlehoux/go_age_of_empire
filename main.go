@@ -49,7 +49,9 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 		destination := cursor.Div(100).Mul(100)
 		slog.Info("destination", slog.String("destination", destination.String()))
 		for _, e := range g.Entities {
-			e.StartMove(destination, moveMap)
+			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
+				e.StartMove(destination, moveMap)
+			}
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {

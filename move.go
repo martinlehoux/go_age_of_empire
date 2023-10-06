@@ -161,10 +161,8 @@ func (p *Path) isValid(moveMap MoveMap) bool {
 
 func (e *Entity) StartMove(destination Point, moveMap MoveMap) {
 	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
-		if e.Selection.Value.IsSelected {
-			e.Move.Value = NewMove(e.Position.Value, destination, moveMap)
-			slog.Info("entity starting move", slog.String("destination", destination.String()))
-		}
+		e.Move.Value = NewMove(e.Position.Value, destination, moveMap)
+		slog.Info("entity starting move", slog.String("destination", destination.String()))
 	}
 }
 
