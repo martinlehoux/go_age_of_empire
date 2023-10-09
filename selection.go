@@ -5,7 +5,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const SELECTION_HALO_SIZE = 10
+const SELECTION_HALO_WIDTH = 10
 
 type Selection struct {
 	IsSelected bool
@@ -39,7 +39,7 @@ func DrawSelection(screen *ebiten.Image, e *Entity) {
 	if e.Image.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
 		if e.Selection.Value.IsSelected {
 			opt := &ebiten.DrawImageOptions{}
-			opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_SIZE/2), float64(e.Position.Value.Y-SELECTION_HALO_SIZE/2))
+			opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_WIDTH/2), float64(e.Position.Value.Y-SELECTION_HALO_WIDTH/2))
 			screen.DrawImage(e.Selection.Value.Halo, opt)
 		}
 	}

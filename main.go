@@ -191,7 +191,7 @@ func main() {
 	game.Entities = append(game.Entities, &storage)
 	var order Order
 	personImage := NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
-	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_SIZE, color.RGBA{0xff, 0x00, 0x00, 0xff})
+	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	person1 := Entity{
 		Position:         C(Point{2000, 2000}),
 		Image:            C(personImage),
