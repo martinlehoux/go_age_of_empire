@@ -173,11 +173,12 @@ func (e *Entity) moveToward(destination Point) {
 }
 
 func (e *Entity) UpdateMove(moveMap MoveMap) {
-	if !e.Move.IsEnabled || !e.Position.IsEnabled {
+	if !e.Move.IsEnabled || !e.Position.IsEnabled || !e.Move.Value.IsActive {
 		return
 	}
 	position := e.Position.Value
-	if !e.Move.Value.IsActive {
+	if len(e.Move.Value.Path) == 0 {
+		e.Move.Value.IsActive = false
 		return
 	}
 	next := e.Move.Value.Path[0]
