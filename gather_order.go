@@ -12,39 +12,41 @@ type GatherOrder struct {
 }
 
 func (o *GatherOrder) Update(e *Entity, g *Game) {
-	if e.Position.IsEnabled && e.Move.IsEnabled && e.ResourceGatherer.IsEnabled && e.ResourceGatherer.Value.CurrentTarget != nil {
-		gatherer := &e.ResourceGatherer.Value
-		source := gatherer.CurrentTarget.ResourceSource.Value
-		if gatherer.CurrentVolume == gatherer.MaxCapacity && !e.Move.Value.IsActive {
-			pointsNextToStorage := []Point{}
-			for _, entity := range g.Entities {
-				if entity.Position.IsEnabled && entity.ResourceStorage.IsEnabled {
-					pointsNextToStorage = append(pointsNextToStorage, AdjacentPoints(entity.Position.Value)...)
-				}
-			}
-			nextToStorage, distance := g.Closest(e.Position.Value, pointsNextToStorage)
+	if !e.Position.IsEnabled || !e.Move.IsEnabled || !e.ResourceGatherer.IsEnabled || e.ResourceGatherer.Value.CurrentTarget == nil {
+		return
+	}
+
+	gatherer := &e.ResourceGatherer.Value
+	source := gatherer.CurrentTarget.ResourceSource.Value
+	if gatherer.CurrentVolume == gatherer.MaxCapacity {
+		if e.Move.Value.IsActive {
+			return
+		}
+		storageDockings := getAllStorageDockings(g)
+		destination, distance := g.Closest(e.Position.Value, storageDockings)
+		if distance == math.MaxInt {
+			slog.Info("no accessible storage, canceling gather order")
+			e.Order.Value = nil
+			return
+		}
+		slog.Info("storage target", slog.String("storage", destination.String()), slog.Int("distance", distance))
+		if distance > 1 {
+			slog.Info("moving to storage", slog.String("storage", destination.String()))
+			e.StartMove(destination, g.getMoveMap())
+		} else {
+			gatherer.CurrentVolume = 0
+			// TODO: increment storage
+			sourceDockings := AdjacentPoints(gatherer.CurrentTarget.Position.Value)
+			destination, distance := g.Closest(e.Position.Value, sourceDockings)
 			if distance == math.MaxInt {
 				slog.Info("no accessible storage, canceling gather order")
 				e.Order.Value = nil
 				return
 			}
-			slog.Info("storage target", slog.String("storage", nextToStorage.String()), slog.Int("distance", distance))
-			if distance > 1 {
-				slog.Info("moving to storage", slog.String("storage", nextToStorage.String()))
-				e.StartMove(nextToStorage, g.getMoveMap())
-			} else {
-				gatherer.CurrentVolume = 0
-				// TODO: increment storage
-				pointsNextToSource := AdjacentPoints(gatherer.CurrentTarget.Position.Value)
-				nextToSource, distance := g.Closest(e.Position.Value, pointsNextToSource)
-				if distance == math.MaxInt {
-					slog.Info("no accessible storage, canceling gather order")
-					e.Order.Value = nil
-					return
-				}
-				e.StartMove(nextToSource, g.getMoveMap())
-			}
-		} else if Distance(e.Position.Value, gatherer.CurrentTarget.Position.Value) <= 100 {
+			e.StartMove(destination, g.getMoveMap())
+		}
+	} else {
+		if Distance(e.Position.Value, gatherer.CurrentTarget.Position.Value) <= 100 {
 			now := time.Now()
 			if gatherer.CurrentVolume < gatherer.MaxCapacity && gatherer.LastPickupTime.Add(200*time.Millisecond).Before(now) {
 				gatherer.LastPickupTime = now
@@ -52,8 +54,28 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 				source.Remaining -= 1
 				slog.Info("gathered", slog.Int("current_volume", gatherer.CurrentVolume))
 			}
+		} else if !e.Move.Value.IsActive {
+			// Lost path to source (todo mutualise)
+			sourceDockings := AdjacentPoints(gatherer.CurrentTarget.Position.Value)
+			destination, distance := g.Closest(e.Position.Value, sourceDockings)
+			if distance == math.MaxInt {
+				slog.Info("no accessible storage, canceling gather order")
+				e.Order.Value = nil
+				return
+			}
+			e.StartMove(destination, g.getMoveMap())
 		}
 	}
+}
+
+func getAllStorageDockings(g *Game) []Point {
+	storageDockings := []Point{}
+	for _, entity := range g.Entities {
+		if entity.Position.IsEnabled && entity.ResourceStorage.IsEnabled {
+			storageDockings = append(storageDockings, AdjacentPoints(entity.Position.Value)...)
+		}
+	}
+	return storageDockings
 }
 
 func Gather(e *Entity, source *Entity, g *Game) Order {
@@ -62,14 +84,14 @@ func Gather(e *Entity, source *Entity, g *Game) Order {
 			slog.Info("gathering from", slog.String("source", source.Position.Value.String()))
 			e.Order.Value = &GatherOrder{source: source}
 			e.ResourceGatherer.Value.CurrentTarget = source
-			pointsNextToSource := AdjacentPoints(source.Position.Value)
-			nextToSource, distance := g.Closest(e.Position.Value, pointsNextToSource)
+			sourceDockings := AdjacentPoints(source.Position.Value)
+			destination, distance := g.Closest(e.Position.Value, sourceDockings)
 			if distance == math.MaxInt {
 				slog.Info("no accessible storage, canceling gather order")
 				e.Order.Value = nil
 				return nil
 			}
-			e.StartMove(nextToSource, g.getMoveMap())
+			e.StartMove(destination, g.getMoveMap())
 		}
 	}
 	return &GatherOrder{source: source}

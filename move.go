@@ -173,32 +173,34 @@ func (e *Entity) moveToward(destination Point) {
 }
 
 func (e *Entity) UpdateMove(moveMap MoveMap) {
-	if e.Move.IsEnabled && e.Position.IsEnabled {
-		position := e.Position.Value
-		if !e.Move.Value.IsActive {
-			return
-		}
-		next := e.Move.Value.Path[0]
-		if Distance(position, next) < MOVE_SPEED {
-			e.Position.Value = next
-			remainingPath := e.Move.Value.Path[1:]
-			if next == e.Move.Value.Destination {
-				e.Move.Value.IsActive = false
-				slog.Info("move finished", slog.String("destination", e.Move.Value.Destination.String()))
-			} else if remainingPath.isValid(moveMap) {
-				e.Move.Value.Path = remainingPath
-			} else {
-				path, ok := SearchPath(next, e.Move.Value.Destination, moveMap)
-				if !ok {
-					slog.Info("no path found", slog.String("destination", e.Move.Value.Destination.String()))
-					e.Move.Value.IsActive = false
-				} else {
-					e.Move.Value.Path = path[1:]
-				}
-			}
+	if !e.Move.IsEnabled || !e.Position.IsEnabled {
+		return
+	}
+	position := e.Position.Value
+	if !e.Move.Value.IsActive {
+		return
+	}
+	next := e.Move.Value.Path[0]
+	if Distance(position, next) < MOVE_SPEED {
+		e.Position.Value = next
+		remainingPath := e.Move.Value.Path[1:]
+		if next == e.Move.Value.Destination {
+			e.Move.Value.IsActive = false
+			slog.Info("move finished", slog.String("destination", e.Move.Value.Destination.String()))
+		} else if remainingPath.isValid(moveMap) {
+			e.Move.Value.Path = remainingPath
 		} else {
-			e.moveToward(next)
+			// Here maybe the destination has to change
+			path, ok := SearchPath(next, e.Move.Value.Destination, moveMap)
+			if !ok {
+				slog.Info("no path found", slog.String("destination", e.Move.Value.Destination.String()))
+				e.Move.Value.IsActive = false
+			} else {
+				e.Move.Value.Path = path[1:]
+			}
 		}
+	} else {
+		e.moveToward(next)
 	}
 }
 

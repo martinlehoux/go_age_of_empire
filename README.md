@@ -24,3 +24,7 @@ func (g \*Game) updatePlacingWall(cursor Point) {
     }
   }
 ```
+
+## Dependencies
+
+- `sudo dnf install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel mesa-libGL-devel libXi-devel libXxf86vm-devel`
