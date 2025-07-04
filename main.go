@@ -35,7 +35,7 @@ type Game struct {
 	Selection     GlobalSelection
 }
 
-func DrawMove(screen *ebiten.Image,  e *Entity) {
+func DrawMove(screen *ebiten.Image, e *Entity) {
 	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
 		if e.Selection.Value.IsSelected && e.Move.Value.IsActive {
 			last := e.Position.Value
@@ -96,7 +96,7 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 				if entityAtDestination != nil && entityAtDestination.ResourceSource.IsEnabled {
 					Gather(e, entityAtDestination, g)
 				} else {
-					physics.StartMove(&e.Move,e.Position, destination, moveMap)
+					physics.StartMove(&e.Move, e.Position, destination, moveMap)
 				}
 			}
 		}
@@ -147,7 +147,7 @@ func (g *Game) Update() error {
 		g.updatePatrolling(cursor)
 	}
 	for _, e := range g.Entities {
-		physics.UpdateMove(&e.Move,&e.Position, moveMap)
+		physics.UpdateMove(&e.Move, &e.Position, moveMap)
 		e.UpdateOrder(g)
 	}
 	return nil

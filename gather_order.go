@@ -24,8 +24,8 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 		return
 	}
 	if physics.Distance(e.Position.Value, gatherer.CurrentTarget.Position.Value) <= 100 {
-			o.updateGathering(gatherer, source)
-			return
+		o.updateGathering(gatherer, source)
+		return
 	}
 	if !e.Move.Value.IsActive {
 		o.startMoveToSource(e, gatherer, g)
@@ -57,7 +57,7 @@ func (o *GatherOrder) updateGathererFull(e *Entity, g *Game, gatherer *ResourceG
 	slog.Info("storage target", slog.String("storage", destination.String()), slog.Int("distance", distance))
 	if distance > 1 {
 		slog.Info("moving to storage", slog.String("storage", destination.String()))
-		physics.StartMove(&e.Move,e.Position, destination, g.getMoveMap())
+		physics.StartMove(&e.Move, e.Position, destination, g.getMoveMap())
 		return
 	}
 	gatherer.CurrentVolume = 0
@@ -73,7 +73,7 @@ func (o *GatherOrder) startMoveToSource(e *Entity, gatherer *ResourceGatherer, g
 		e.Order.Value = nil
 		return
 	}
-	physics.StartMove(&e.Move,e.Position, destination, g.getMoveMap())
+	physics.StartMove(&e.Move, e.Position, destination, g.getMoveMap())
 }
 
 func getAllStorageDockings(g *Game) []physics.Point {
@@ -99,7 +99,7 @@ func Gather(e *Entity, source *Entity, g *Game) Order {
 				e.Order.Value = nil
 				return nil
 			}
-			physics.StartMove(&e.Move,e.Position, destination, g.getMoveMap())
+			physics.StartMove(&e.Move, e.Position, destination, g.getMoveMap())
 		}
 	}
 	return &GatherOrder{source: source}

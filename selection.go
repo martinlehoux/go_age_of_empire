@@ -17,7 +17,7 @@ type Selection struct {
 func (e *Entity) SelectMultiple(cursor physics.Point, selection GlobalSelection) {
 	if e.Selection.IsEnabled {
 		e.Selection.Value.IsSelected = false
-		selectionBounds := physics.Rectangle{Min:selection.Start, Max:cursor}.Canon()
+		selectionBounds := physics.Rectangle{Min: selection.Start, Max: cursor}.Canon()
 		if selectionBounds.Overlaps(e.Bounds()) {
 			e.Selection.Value.IsSelected = true
 			slog.Info("entity selected", slog.String("position", e.Position.Value.String()))
