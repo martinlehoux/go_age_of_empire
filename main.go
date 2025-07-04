@@ -12,6 +12,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/martinlehoux/kagamigo/kcore"
 	"golang.org/x/exp/slog"
 )
 
@@ -33,6 +34,7 @@ type Game struct {
 	Entities      []*Entity
 	CurrentAction Action
 	Selection     GlobalSelection
+	ResourceAmount int
 }
 
 func DrawMove(screen *ebiten.Image, e *Entity) {
@@ -181,14 +183,10 @@ func main() {
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Age of Empire")
 	icon, err := os.Open("icon-crop.jpg")
-	if err != nil {
-		panic(err)
-	}
+	kcore.Expect(err, "failed to open icon")
 	defer icon.Close()
 	iconImg, _, err := image.Decode(icon)
-	if err != nil {
-		panic(err)
-	}
+	kcore.Expect(err, "failed to decode icon")
 	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{}
 	ironImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})

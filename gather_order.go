@@ -60,8 +60,8 @@ func (o *GatherOrder) updateGathererFull(e *Entity, g *Game, gatherer *ResourceG
 		physics.StartMove(&e.Move, e.Position, destination, g.getMoveMap())
 		return
 	}
+	g.ResourceAmount += gatherer.CurrentVolume
 	gatherer.CurrentVolume = 0
-	// TODO: increment storage
 	o.startMoveToSource(e, gatherer, g)
 }
 
