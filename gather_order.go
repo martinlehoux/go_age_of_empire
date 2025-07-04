@@ -40,7 +40,6 @@ func (*GatherOrder) updateGathering(gatherer *ResourceGatherer, source ResourceS
 	gatherer.LastPickupTime = now
 	gatherer.CurrentVolume += 1
 	source.Remaining -= 1
-	slog.Info("gathered", slog.Int("current_volume", gatherer.CurrentVolume))
 }
 
 func (o *GatherOrder) updateGathererFull(e *Entity, g *Game, gatherer *ResourceGatherer) {

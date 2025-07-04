@@ -5,8 +5,11 @@
 ## TODO
 
 - atm, stops moving if someone settles at destination
-- save globally resources
-- an entity may spawn other enities with a cost
+- an entity may spawn other entities with a cost
+- spawn order
+- bigger map
+- move the map view
+- bug: select A, gather, move to B, (it stops), gather (no storage)
 
 ## Dependencies
 

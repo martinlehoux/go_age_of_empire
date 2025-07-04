@@ -3,6 +3,8 @@ package main
 import (
 	"age_of_empires/ecs"
 	"age_of_empires/physics"
+	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	_ "image/jpeg"
@@ -11,9 +13,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/martinlehoux/kagamigo/kcore"
 	"golang.org/x/exp/slog"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 type Action string
@@ -35,6 +39,7 @@ type Game struct {
 	CurrentAction Action
 	Selection     GlobalSelection
 	ResourceAmount int
+	FaceSource *text.GoTextFaceSource
 }
 
 func DrawMove(screen *ebiten.Image, e *Entity) {
@@ -171,6 +176,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.Selection.IsActive {
 		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(cursor.X-g.Selection.Start.X), float32(cursor.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 	}
+	bannerHeight := float32(200)
+	vector.DrawFilledRect(screen, 0, 0, float32(3200), bannerHeight, color.White, true)
+
+	resourceText := fmt.Sprintf("Resources: %d", g.ResourceAmount)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(25, 25)
+	op.ColorScale.ScaleWithColor(color.Black)
+	text.Draw(screen, resourceText, &text.GoTextFace{
+		Source: g.FaceSource,
+		Size:   100,
+	} , op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -189,6 +205,9 @@ func main() {
 	kcore.Expect(err, "failed to decode icon")
 	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{}
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	kcore.Expect(err, "failed to create font source")
+	game.FaceSource = s
 	ironImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
 	ironMine := Entity{
 		Position:       ecs.C(physics.Point{X: 1000, Y: 1000}),
@@ -225,7 +244,5 @@ func main() {
 	}
 	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting
-	if err := ebiten.RunGame(game); err != nil {
-		panic(err)
-	}
+	kcore.Expect(ebiten.RunGame(game), "failed to run game")
 }
