@@ -4,6 +4,8 @@
 
 ## TODO
 
+- atm, stops moving if someone settles at destination
+
 ```go
 func (g \*Game) updatePlacingWall(cursor Point) {
   if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {

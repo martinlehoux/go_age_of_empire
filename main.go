@@ -1,6 +1,8 @@
 package main
 
 import (
+	"age_of_empires/ecs"
+	"age_of_empires/physics"
 	"image"
 	"image/color"
 	_ "image/jpeg"
@@ -24,7 +26,7 @@ var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
 
 type GlobalSelection struct {
 	IsActive bool
-	Start    Point
+	Start    physics.Point
 }
 
 type Game struct {
@@ -33,22 +35,36 @@ type Game struct {
 	Selection     GlobalSelection
 }
 
-func (g *Game) getMoveMap() MoveMap {
-	blocked := map[Point]bool{}
+func DrawMove(screen *ebiten.Image,  e *Entity) {
+	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
+		if e.Selection.Value.IsSelected && e.Move.Value.IsActive {
+			last := e.Position.Value
+			dx := +e.Image.Value.Bounds().Dx() / 2
+			dy := +e.Image.Value.Bounds().Dy() / 2
+			for _, point := range e.Move.Value.Path {
+				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+				last = point
+			}
+		}
+	}
+}
+
+func (g *Game) getMoveMap() physics.MoveMap {
+	blocked := map[physics.Point]bool{}
 	for _, e := range g.Entities {
 		if e.Position.IsEnabled {
 			blocked[e.Position.Value] = true
 		}
 	}
-	return MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
+	return physics.MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
-func (g *Game) Closest(from Point, candidates []Point) (Point, int) {
-	var closest Point
+func (g *Game) Closest(from physics.Point, candidates []physics.Point) (physics.Point, int) {
+	var closest physics.Point
 	closestDistance := math.MaxInt
 	moveMap := g.getMoveMap()
 	for _, dest := range candidates {
-		path, ok := SearchPath(from, dest, moveMap)
+		path, ok := physics.SearchPath(from, dest, moveMap)
 		if !ok {
 			continue
 		}
@@ -60,7 +76,7 @@ func (g *Game) Closest(from Point, candidates []Point) (Point, int) {
 	return closest, closestDistance
 }
 
-func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
+func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Selection.Start = cursor
 		g.Selection.IsActive = true
@@ -80,13 +96,13 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 				if entityAtDestination != nil && entityAtDestination.ResourceSource.IsEnabled {
 					Gather(e, entityAtDestination, g)
 				} else {
-					e.StartMove(destination, moveMap)
+					physics.StartMove(&e.Move,e.Position, destination, moveMap)
 				}
 			}
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if g.Selection.IsActive && Distance(g.Selection.Start, cursor) > 10 {
+		if g.Selection.IsActive && physics.Distance(g.Selection.Start, cursor) > 10 {
 			for _, e := range g.Entities {
 				e.SelectMultiple(cursor, g.Selection)
 			}
@@ -102,7 +118,7 @@ func (g *Game) updateSelecting(cursor Point, moveMap MoveMap) {
 	}
 }
 
-func (g *Game) updatePatrolling(cursor Point) {
+func (g *Game) updatePatrolling(cursor physics.Point) {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
 		for _, e := range g.Entities {
@@ -114,7 +130,7 @@ func (g *Game) updatePatrolling(cursor Point) {
 
 func (g *Game) Update() error {
 	x, y := ebiten.CursorPosition()
-	cursor := Point{x, y}
+	cursor := physics.Point{X: x, Y: y}
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
 		g.CurrentAction = Selecting
 		slog.Info("selecting action")
@@ -131,7 +147,7 @@ func (g *Game) Update() error {
 		g.updatePatrolling(cursor)
 	}
 	for _, e := range g.Entities {
-		e.UpdateMove(moveMap)
+		physics.UpdateMove(&e.Move,&e.Position, moveMap)
 		e.UpdateOrder(g)
 	}
 	return nil
@@ -139,7 +155,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	x, y := ebiten.CursorPosition()
-	cursor := Point{x, y}
+	cursor := physics.Point{X: x, Y: y}
 	screen.Fill(soilColor)
 	for _, e := range g.Entities {
 		Draw(screen, e)
@@ -175,39 +191,39 @@ func main() {
 	}
 	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{}
-	ironImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
+	ironImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
 	ironMine := Entity{
-		Position:       C(Point{1000, 1000}),
-		Image:          C(ironImage),
-		ResourceSource: C(ResourceSource{Remaining: 1000}),
+		Position:       ecs.C(physics.Point{X: 1000, Y: 1000}),
+		Image:          ecs.C(ironImage),
+		ResourceSource: ecs.C(ResourceSource{Remaining: 1000}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
-	storageImage := NewFilledRectangleImage(Point{100, 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
+	storageImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
 	storage := Entity{
-		Position:        C(Point{1000, 2000}),
-		Image:           C(storageImage),
-		ResourceStorage: C(ResourceStorage{}),
+		Position:        ecs.C(physics.Point{X: 1000, Y: 2000}),
+		Image:           ecs.C(storageImage),
+		ResourceStorage: ecs.C(ResourceStorage{}),
 	}
 	game.Entities = append(game.Entities, &storage)
 	var order Order
 	personImage := NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	person1 := Entity{
-		Position:         C(Point{2000, 2000}),
-		Image:            C(personImage),
-		Selection:        C(Selection{IsSelected: false, Halo: personSelectionHalo}),
-		Move:             C(Move{IsActive: false}),
-		Order:            C(order),
-		ResourceGatherer: C(ResourceGatherer{MaxCapacity: 15}),
+		Position:         ecs.C(physics.Point{X: 2000, Y: 2000}),
+		Image:            ecs.C(personImage),
+		Selection:        ecs.C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Move:             ecs.C(physics.Move{IsActive: false}),
+		Order:            ecs.C(order),
+		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
 	}
 	game.Entities = append(game.Entities, &person1)
 	person2 := Entity{
-		Position:         C(Point{2200, 2200}),
-		Image:            C(personImage),
-		Selection:        C(Selection{IsSelected: false, Halo: personSelectionHalo}),
-		Move:             C(Move{IsActive: false}),
-		Order:            C(order),
-		ResourceGatherer: C(ResourceGatherer{MaxCapacity: 15}),
+		Position:         ecs.C(physics.Point{X: 2200, Y: 2200}),
+		Image:            ecs.C(personImage),
+		Selection:        ecs.C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Move:             ecs.C(physics.Move{IsActive: false}),
+		Order:            ecs.C(order),
+		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
 	}
 	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting

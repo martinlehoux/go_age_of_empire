@@ -1,31 +1,27 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"age_of_empires/ecs"
+	"age_of_empires/physics"
 
-type Component[T any] struct {
-	IsEnabled bool
-	Value     T
-}
-
-func C[T any](t T) Component[T] {
-	return Component[T]{IsEnabled: true, Value: t}
-}
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 type Entity struct {
-	Position         Component[Point]
-	Image            Component[*ebiten.Image]
-	Selection        Component[Selection]
-	Move             Component[Move]
-	Order            Component[Order]
-	ResourceGatherer Component[ResourceGatherer]
-	ResourceSource   Component[ResourceSource]
-	ResourceStorage  Component[ResourceStorage]
+	Position         ecs.Component[physics.Point]
+	Image            ecs.Component[*ebiten.Image]
+	Selection        ecs.Component[Selection]
+	Move             ecs.Component[physics.Move]
+	Order            ecs.Component[Order]
+	ResourceGatherer ecs.Component[ResourceGatherer]
+	ResourceSource   ecs.Component[ResourceSource]
+	ResourceStorage  ecs.Component[ResourceStorage]
 }
 
-func (e Entity) Bounds() Rectangle {
-	return Rectangle{
-		e.Position.Value,
-		e.Position.Value.Add(e.Image.Value.Bounds().Size()),
+func (e Entity) Bounds() physics.Rectangle {
+	return physics.Rectangle{
+		Min: e.Position.Value,
+		Max: e.Position.Value.Add(e.Image.Value.Bounds().Size()),
 	}
 }
 
