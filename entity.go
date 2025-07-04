@@ -26,9 +26,10 @@ func (e Entity) Bounds() physics.Rectangle {
 }
 
 func Draw(screen *ebiten.Image, e *Entity) {
-	if e.Image.IsEnabled && e.Position.IsEnabled {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(e.Position.Value.X), float64(e.Position.Value.Y))
-		screen.DrawImage(e.Image.Value, op)
+	if !e.Image.IsEnabled || !e.Position.IsEnabled {
+		return
 	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(e.Position.Value.X), float64(e.Position.Value.Y))
+	screen.DrawImage(e.Image.Value, op)
 }

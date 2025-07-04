@@ -15,26 +15,28 @@ type Selection struct {
 }
 
 func (e *Entity) SelectMultiple(cursor physics.Point, selection GlobalSelection) {
-	if e.Selection.IsEnabled {
-		e.Selection.Value.IsSelected = false
-		selectionBounds := physics.Rectangle{Min: selection.Start, Max: cursor}.Canon()
-		if selectionBounds.Overlaps(e.Bounds()) {
-			e.Selection.Value.IsSelected = true
-			slog.Info("entity selected", slog.String("position", e.Position.Value.String()))
-		}
+	if !e.Selection.IsEnabled {
+		return
+	}
+	e.Selection.Value.IsSelected = false
+	selectionBounds := physics.Rectangle{Min: selection.Start, Max: cursor}.Canon()
+	if selectionBounds.Overlaps(e.Bounds()) {
+		e.Selection.Value.IsSelected = true
+		slog.Info("entity selected", slog.String("position", e.Position.Value.String()))
 	}
 }
 
 func (e *Entity) SelectSingle(cursor physics.Point, canBeSelected bool) bool {
-	if e.Selection.IsEnabled {
-		e.Selection.Value.IsSelected = false
-		if canBeSelected && cursor.In(e.Bounds()) {
-			e.Selection.Value.IsSelected = true
-			slog.Info("entity selected", slog.String("position", e.Position.Value.String()))
-			return true
-		}
+	if !e.Selection.IsEnabled {
+		return false
 	}
-	return false
+	e.Selection.Value.IsSelected = false
+	if !canBeSelected || cursor.In(e.Bounds()) {
+		return false
+	}
+	e.Selection.Value.IsSelected = true
+	slog.Info("entity selected", slog.String("position", e.Position.Value.String()))
+	return true
 }
 
 func DrawSelection(screen *ebiten.Image, e *Entity) {

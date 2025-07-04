@@ -35,11 +35,11 @@ type GlobalSelection struct {
 }
 
 type Game struct {
-	Entities      []*Entity
-	CurrentAction Action
-	Selection     GlobalSelection
+	Entities       []*Entity
+	CurrentAction  Action
+	Selection      GlobalSelection
 	ResourceAmount int
-	FaceSource *text.GoTextFaceSource
+	FaceSource     *text.GoTextFaceSource
 }
 
 func DrawMove(screen *ebiten.Image, e *Entity) {
@@ -186,7 +186,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, resourceText, &text.GoTextFace{
 		Source: g.FaceSource,
 		Size:   100,
-	} , op)
+	}, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
