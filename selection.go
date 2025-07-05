@@ -31,7 +31,7 @@ func (e *Entity) SelectSingle(cursor physics.Point, canBeSelected bool) bool {
 		return false
 	}
 	e.Selection.Value.IsSelected = false
-	if !canBeSelected || cursor.In(e.Bounds()) {
+	if !canBeSelected || !cursor.In(e.Bounds()) {
 		return false
 	}
 	e.Selection.Value.IsSelected = true
@@ -40,11 +40,12 @@ func (e *Entity) SelectSingle(cursor physics.Point, canBeSelected bool) bool {
 }
 
 func DrawSelection(screen *ebiten.Image, e *Entity) {
-	if e.Image.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
-		if e.Selection.Value.IsSelected {
-			opt := &ebiten.DrawImageOptions{}
-			opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_WIDTH/2), float64(e.Position.Value.Y-SELECTION_HALO_WIDTH/2))
-			screen.DrawImage(e.Selection.Value.Halo, opt)
-		}
+	if !e.Image.IsEnabled || !e.Position.IsEnabled || !e.Selection.IsEnabled {
+		return
+	}
+	if e.Selection.Value.IsSelected {
+		opt := &ebiten.DrawImageOptions{}
+		opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_WIDTH/2), float64(e.Position.Value.Y-SELECTION_HALO_WIDTH/2))
+		screen.DrawImage(e.Selection.Value.Halo, opt)
 	}
 }
