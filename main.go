@@ -165,10 +165,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	cursor := physics.Point{X: x, Y: y}
 	screen.Fill(soilColor)
 	for _, e := range g.Entities {
-		Draw(screen, e)
-	}
-	for _, e := range g.Entities {
-		DrawSelection(screen, e)
+		e.Draw(g, screen)
 	}
 	for _, e := range g.Entities {
 		DrawMove(screen, e)
@@ -209,10 +206,12 @@ func main() {
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
 	ironImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
+	ironSelectionHalo := NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	ironMine := Entity{
 		Position:       ecs.C(physics.Point{X: 1000, Y: 1000}),
 		Image:          ecs.C(ironImage),
 		ResourceSource: ecs.C(ResourceSource{Remaining: 1000}),
+		Selection:      ecs.C(Selection{IsSelected: false, Halo: ironSelectionHalo}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
 	storageImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
