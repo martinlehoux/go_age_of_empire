@@ -59,18 +59,32 @@ func SearchPath(origin Point, destination Point, moveMap MoveMap) (Path, bool) {
 	return search.search()
 }
 
-func (s *PathSearch) addNeighbors(point Point, node Node) {
-	if point.X >= 100 {
-		s.consider(Point{X: point.X - 100, Y: point.Y}, point)
+var neighborsDirectionsDiagonal = []Point{
+		{X: -100, Y: 0},    // left
+		{X: 100, Y: 0},     // right
+		{X: 0, Y: -100},    // up
+		{X: 0, Y: 100},     // down
+		{X: -100, Y: -100}, // top-left
+		{X: 100, Y: -100},  // top-right
+		{X: -100, Y: 100},  // bottom-left
+		{X: 100, Y: 100},   // bottom-right
 	}
-	if point.X <= s.moveMap.Width-100 {
-		s.consider(Point{X: point.X + 100, Y: point.Y}, point)
+var neighborsDirectionsStraight = []Point{
+		{X: -100, Y: 0},    // left
+		{X: 100, Y: 0},     // right
+		{X: 0, Y: -100},    // up
+		{X: 0, Y: 100},     // down
 	}
-	if point.Y >= 100 {
-		s.consider(Point{X: point.X, Y: point.Y - 100}, point)
-	}
-	if point.Y <= s.moveMap.Height-100 {
-		s.consider(Point{X: point.X, Y: point.Y + 100}, point)
+
+// Add neighbors to the open list
+// Choose neighborsDirections
+func (s *PathSearch) addNeighbors(point Point) {
+	for _, dir := range neighborsDirectionsDiagonal {
+		neighbor := Point{X: point.X + dir.X, Y: point.Y + dir.Y}
+		if neighbor.X >= 0 && neighbor.X <= s.moveMap.Width-100 &&
+		   neighbor.Y >= 0 && neighbor.Y <= s.moveMap.Height-100 {
+			s.consider(neighbor, point)
+		}
 	}
 }
 
@@ -127,7 +141,7 @@ func (s *PathSearch) search() (Path, bool) {
 		point, node = s.bestOpenNode()
 		s.closedList[point] = node
 		delete(s.openList, point)
-		s.addNeighbors(point, node)
+		s.addNeighbors(point)
 	}
 	if point == s.destination {
 		return s.buildPath(), true
