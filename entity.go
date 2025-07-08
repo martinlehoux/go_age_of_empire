@@ -16,6 +16,7 @@ type Entity struct {
 	ResourceGatherer ecs.Component[ResourceGatherer]
 	ResourceSource   ecs.Component[ResourceSource]
 	ResourceStorage  ecs.Component[ResourceStorage]
+	Spawn            ecs.Component[Spawn]
 }
 
 func (e Entity) Bounds() physics.Rectangle {

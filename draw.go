@@ -29,5 +29,15 @@ func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
 				Size:   40,
 			}, op)
 		}
+		if e.Spawn.IsEnabled {
+			spawnText := fmt.Sprintf("%d", len(e.Spawn.Value.Requests))
+			op := &text.DrawOptions{}
+			op.GeoM.Translate(float64(e.Position.Value.X+5), float64(e.Position.Value.Y+70))
+			op.ColorScale.ScaleWithColor(color.White)
+			text.Draw(screen, spawnText, &text.GoTextFace{
+				Source: g.FaceSource,
+				Size:   40,
+			}, op)
+		}
 	}
 }

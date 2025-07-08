@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	"math"
 	"os"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -40,6 +41,8 @@ type Game struct {
 	Selection      GlobalSelection
 	ResourceAmount int
 	FaceSource     *text.GoTextFaceSource
+	personImage    *ebiten.Image
+	personSelectionHalo *ebiten.Image
 }
 
 func DrawMove(screen *ebiten.Image, e *Entity) {
@@ -123,6 +126,14 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 		}
 		g.Selection.IsActive = false
 	}
+	if inpututil.IsKeyJustReleased(ebiten.KeyS) {
+		for _, e := range g.Entities {
+			if !e.Selection.IsEnabled || !e.Selection.Value.IsSelected || !e.Spawn.IsEnabled {
+				continue
+			}
+			e.Spawn.Value.AddRequest(g)
+		}
+	}
 }
 
 func (g *Game) updatePatrolling(cursor physics.Point) {
@@ -156,6 +167,7 @@ func (g *Game) Update() error {
 	for _, e := range g.Entities {
 		physics.UpdateMove(&e.Move, &e.Position, moveMap)
 		e.UpdateOrder(g)
+		UpdateSpawn(g, &e.Spawn, e.Position)
 	}
 	return nil
 }
@@ -214,29 +226,33 @@ func main() {
 		Selection:      ecs.C(Selection{IsSelected: false, Halo: ironSelectionHalo}),
 	}
 	game.Entities = append(game.Entities, &ironMine)
-	storageImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
-	storage := Entity{
+	townCenterImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
+	townCenter := Entity{
 		Position:        ecs.C(physics.Point{X: 1000, Y: 2000}),
-		Image:           ecs.C(storageImage),
+		Image:           ecs.C(townCenterImage),
 		ResourceStorage: ecs.C(ResourceStorage{}),
+		Selection:       ecs.C(Selection{IsSelected: false, Halo: NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})}),
+		Spawn: ecs.C(NewSpawn(50, 5*time.Second)),
 	}
-	game.Entities = append(game.Entities, &storage)
+	game.Entities = append(game.Entities, &townCenter)
 	var order Order
-	personImage := NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
-	personSelectionHalo := NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
+	game.personImage = NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	game.personSelectionHalo = NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
+	spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
 	person1 := Entity{
-		Position:         ecs.C(physics.Point{X: 2000, Y: 2000}),
-		Image:            ecs.C(personImage),
-		Selection:        ecs.C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Position:         ecs.C(spawnPosition),
+		Image:            ecs.C(game.personImage),
+		Selection:        ecs.C(Selection{IsSelected: false, Halo: game.personSelectionHalo}),
 		Move:             ecs.C(physics.Move{IsActive: false}),
 		Order:            ecs.C(order),
 		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
 	}
 	game.Entities = append(game.Entities, &person1)
+	spawnPosition, _ = game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
 	person2 := Entity{
-		Position:         ecs.C(physics.Point{X: 2200, Y: 2200}),
-		Image:            ecs.C(personImage),
-		Selection:        ecs.C(Selection{IsSelected: false, Halo: personSelectionHalo}),
+		Position:         ecs.C(spawnPosition),
+		Image:            ecs.C(game.personImage),
+		Selection:        ecs.C(Selection{IsSelected: false, Halo: game.personSelectionHalo}),
 		Move:             ecs.C(physics.Move{IsActive: false}),
 		Order:            ecs.C(order),
 		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
