@@ -18,13 +18,12 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 	}
 
 	gatherer := &e.ResourceGatherer.Value
-	source := gatherer.CurrentTarget.ResourceSource.Value
 	if gatherer.CurrentVolume == gatherer.MaxCapacity {
 		o.updateGathererFull(e, g, gatherer)
 		return
 	}
 	if physics.Distance(e.Position.Value, gatherer.CurrentTarget.Position.Value) <= 100 {
-		o.updateGathering(gatherer, source)
+		o.updateGathering(gatherer, &gatherer.CurrentTarget.ResourceSource.Value)
 		return
 	}
 	if !e.Move.Value.IsActive {
@@ -32,7 +31,7 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 	}
 }
 
-func (*GatherOrder) updateGathering(gatherer *ResourceGatherer, source ResourceSource) {
+func (*GatherOrder) updateGathering(gatherer *ResourceGatherer, source *ResourceSource) {
 	now := time.Now()
 	if gatherer.CurrentVolume >= gatherer.MaxCapacity || gatherer.LastPickupTime.Add(200*time.Millisecond).After(now) {
 		return
