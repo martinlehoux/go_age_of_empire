@@ -91,7 +91,10 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 		entityAtDestination := g.entityAt(destination)
 		slog.Info("destination", slog.String("destination", destination.String()))
 		for _, e := range g.Entities {
-			e.MainAction(g, destination, entityAtDestination, moveMap)
+			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
+				e.MainAction(g, destination, entityAtDestination, moveMap)
+
+			}
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
@@ -179,7 +182,9 @@ func main() {
 	iconImg, _, err := image.Decode(icon)
 	kcore.Expect(err, "failed to decode icon")
 	ebiten.SetWindowIcon([]image.Image{iconImg})
-	game := &Game{}
+	game := &Game{
+		ResourceAmount: 150,
+	}
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
@@ -187,10 +192,9 @@ func main() {
 	game.Entities = append(game.Entities, &ironMine)
 	townCenter := EntityBuilder{}.WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square").WithSpawn(NewSpawn(50, 5*time.Second)).Build()
 	game.Entities = append(game.Entities, &townCenter)
-	spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
 	game.UnitBuilder = EntityBuilder{}.WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
-	for i := 0; i < 2; i++ {
-		spawnPosition, _ = game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
+	for i := 0; i < 0; i++ {
+		spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
 		person := game.UnitBuilder.Build()
 		person.Position = ecs.C(spawnPosition)
 		game.Entities = append(game.Entities, &person)
