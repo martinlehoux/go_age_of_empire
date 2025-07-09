@@ -4,7 +4,6 @@ import (
 	"age_of_empires/ecs"
 	"age_of_empires/physics"
 	"bytes"
-	"fmt"
 	"image"
 	"image/color"
 	_ "image/jpeg"
@@ -16,7 +15,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/martinlehoux/kagamigo/kcore"
 	"golang.org/x/exp/slog"
 	"golang.org/x/image/font/gofont/goregular"
@@ -43,20 +41,6 @@ type Game struct {
 	ResourceAmount int
 	FaceSource     *text.GoTextFaceSource
 	UnitBuilder    EntityBuilder
-}
-
-func DrawMove(screen *ebiten.Image, e *Entity) {
-	if e.Move.IsEnabled && e.Position.IsEnabled && e.Selection.IsEnabled {
-		if e.Selection.Value.IsSelected && e.Move.Value.IsActive {
-			last := e.Position.Value
-			dx := +e.Image.Value.Bounds().Dx() / 2
-			dy := +e.Image.Value.Bounds().Dy() / 2
-			for _, point := range e.Move.Value.Path {
-				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
-				last = point
-			}
-		}
-	}
 }
 
 func (g *Game) getMoveMap() physics.MoveMap {
@@ -170,32 +154,6 @@ func (g *Game) Update() error {
 		UpdateSpawn(g, &e.Spawn, e.Position)
 	}
 	return nil
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	x, y := ebiten.CursorPosition()
-	cursor := physics.Point{X: x, Y: y}
-	screen.Fill(soilColor)
-	for _, e := range g.Entities {
-		e.Draw(g, screen)
-	}
-	for _, e := range g.Entities {
-		DrawMove(screen, e)
-	}
-	if g.Selection.IsActive {
-		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(cursor.X-g.Selection.Start.X), float32(cursor.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
-	}
-	bannerHeight := float32(200)
-	vector.DrawFilledRect(screen, 0, 0, float32(3200), bannerHeight, color.White, true)
-
-	resourceText := fmt.Sprintf("Resources: %d", g.ResourceAmount)
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(25, 25)
-	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, resourceText, &text.GoTextFace{
-		Source: g.FaceSource,
-		Size:   100,
-	}, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
