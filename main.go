@@ -43,6 +43,7 @@ type Game struct {
 	UnitBuilder    EntityBuilder
 }
 
+// TODO: This could be a maintained index
 func (g *Game) getMoveMap() physics.MoveMap {
 	blocked := map[physics.Point]bool{}
 	for _, e := range g.Entities {
@@ -70,6 +71,16 @@ func (g *Game) Closest(from physics.Point, candidates []physics.Point) (physics.
 	return closest, closestDistance
 }
 
+// TODO: This could be a maintained index
+func (g *Game) entityAt(position physics.Point) *Entity {
+	for _, e := range g.Entities {
+		if e.Position.IsEnabled && e.Position.Value == position {
+			return e
+		}
+	}
+	return nil
+}
+
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Selection.Start = cursor
@@ -77,22 +88,10 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
-		var entityAtDestination *Entity
-		for _, e := range g.Entities {
-			if e.Position.IsEnabled && e.Position.Value == destination {
-				entityAtDestination = e
-				break
-			}
-		}
+		entityAtDestination := g.entityAt(destination)
 		slog.Info("destination", slog.String("destination", destination.String()))
 		for _, e := range g.Entities {
-			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-				if entityAtDestination != nil && entityAtDestination.ResourceSource.IsEnabled {
-					Gather(e, entityAtDestination, g)
-				} else {
-					physics.StartMove(&e.Move, e.Position, destination, moveMap)
-				}
-			}
+			e.MainAction(g, destination, entityAtDestination, moveMap)
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
