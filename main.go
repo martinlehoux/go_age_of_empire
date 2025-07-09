@@ -42,8 +42,7 @@ type Game struct {
 	Selection      GlobalSelection
 	ResourceAmount int
 	FaceSource     *text.GoTextFaceSource
-	personImage    *ebiten.Image
-	personSelectionHalo *ebiten.Image
+	UnitBuilder    EntityBuilder
 }
 
 func DrawMove(screen *ebiten.Image, e *Entity) {
@@ -209,7 +208,7 @@ func main() {
 			f, err := os.Create("cpu.prof")
 			kcore.Expect(err, "could not create CPU profile")
 			defer f.Close()
-		    kcore.Expect(pprof.StartCPUProfile(f), "could not start CPU profile")
+			kcore.Expect(pprof.StartCPUProfile(f), "could not start CPU profile")
 			defer pprof.StopCPUProfile()
 		}
 	}
@@ -227,47 +226,19 @@ func main() {
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
-	ironImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})
-	ironSelectionHalo := NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
-	ironMine := Entity{
-		Position:       ecs.C(physics.Point{X: 1000, Y: 1000}),
-		Image:          ecs.C(ironImage),
-		ResourceSource: ecs.C(ResourceSource{Remaining: 1000}),
-		Selection:      ecs.C(Selection{IsSelected: false, Halo: ironSelectionHalo}),
-	}
+	ironMine := EntityBuilder{}.WithPosition(physics.Point{X: 1000, Y: 1000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square").Build()
 	game.Entities = append(game.Entities, &ironMine)
-	townCenterImage := NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x00, 0x00, 0xff, 0xff})
-	townCenter := Entity{
-		Position:        ecs.C(physics.Point{X: 1000, Y: 2000}),
-		Image:           ecs.C(townCenterImage),
-		ResourceStorage: ecs.C(ResourceStorage{}),
-		Selection:       ecs.C(Selection{IsSelected: false, Halo: NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})}),
-		Spawn: ecs.C(NewSpawn(50, 5*time.Second)),
-	}
+	townCenter := EntityBuilder{}.WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square").WithSpawn(NewSpawn(50, 5*time.Second)).Build()
 	game.Entities = append(game.Entities, &townCenter)
-	var order Order
-	game.personImage = NewFilledCircleImage(100, color.RGBA{0xff, 0xff, 0xff, 0xff})
-	game.personSelectionHalo = NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
-	person1 := Entity{
-		Position:         ecs.C(spawnPosition),
-		Image:            ecs.C(game.personImage),
-		Selection:        ecs.C(Selection{IsSelected: false, Halo: game.personSelectionHalo}),
-		Move:             ecs.C(physics.Move{IsActive: false}),
-		Order:            ecs.C(order),
-		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
+	game.UnitBuilder = EntityBuilder{}.WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
+	for i := 0; i < 2; i++ {
+		spawnPosition, _ = game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
+		person := game.UnitBuilder.Build()
+		person.Position = ecs.C(spawnPosition)
+		game.Entities = append(game.Entities, &person)
 	}
-	game.Entities = append(game.Entities, &person1)
-	spawnPosition, _ = game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
-	person2 := Entity{
-		Position:         ecs.C(spawnPosition),
-		Image:            ecs.C(game.personImage),
-		Selection:        ecs.C(Selection{IsSelected: false, Halo: game.personSelectionHalo}),
-		Move:             ecs.C(physics.Move{IsActive: false}),
-		Order:            ecs.C(order),
-		ResourceGatherer: ecs.C(ResourceGatherer{MaxCapacity: 15}),
-	}
-	game.Entities = append(game.Entities, &person2)
 	game.CurrentAction = Selecting
+	ebiten.SetRunnableOnUnfocused(true)
 	kcore.Expect(ebiten.RunGame(game), "failed to run game")
 }
