@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	"math"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -203,6 +204,15 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	for _, arg := range os.Args {
+		if arg == "--profile" {
+			f, err := os.Create("cpu.prof")
+			kcore.Expect(err, "could not create CPU profile")
+			defer f.Close()
+		    kcore.Expect(pprof.StartCPUProfile(f), "could not start CPU profile")
+			defer pprof.StopCPUProfile()
+		}
+	}
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logHandler))
 	ebiten.SetWindowSize(640, 480)
