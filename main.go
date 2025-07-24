@@ -187,11 +187,11 @@ func main() {
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
-	ironMine := EntityBuilder{}.WithPosition(physics.Point{X: 1000, Y: 1000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square").Build()
+	ironMine := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 1000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square").Build()
 	game.Entities = append(game.Entities, &ironMine)
-	townCenter := EntityBuilder{}.WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square").WithSpawn(NewSpawn(50, 5*time.Second)).Build()
+	townCenter := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square").WithSpawn(NewSpawn(50, 1*time.Second)).Build()
 	game.Entities = append(game.Entities, &townCenter)
-	game.UnitBuilder = EntityBuilder{}.WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
+	game.UnitBuilder = NewEntityBuilder().WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
 	for i := 0; i < 0; i++ {
 		spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
 		person := game.UnitBuilder.Build()
