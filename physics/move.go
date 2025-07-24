@@ -60,21 +60,15 @@ func SearchPath(origin Point, destination Point, moveMap MoveMap) (Path, bool) {
 }
 
 var neighborsDirectionsDiagonal = []Point{
-		{X: -100, Y: 0},    // left
-		{X: 100, Y: 0},     // right
-		{X: 0, Y: -100},    // up
-		{X: 0, Y: 100},     // down
-		{X: -100, Y: -100}, // top-left
-		{X: 100, Y: -100},  // top-right
-		{X: -100, Y: 100},  // bottom-left
-		{X: 100, Y: 100},   // bottom-right
-	}
-var neighborsDirectionsStraight = []Point{
-		{X: -100, Y: 0},    // left
-		{X: 100, Y: 0},     // right
-		{X: 0, Y: -100},    // up
-		{X: 0, Y: 100},     // down
-	}
+	{X: -100, Y: 0},    // left
+	{X: 100, Y: 0},     // right
+	{X: 0, Y: -100},    // up
+	{X: 0, Y: 100},     // down
+	{X: -100, Y: -100}, // top-left
+	{X: 100, Y: -100},  // top-right
+	{X: -100, Y: 100},  // bottom-left
+	{X: 100, Y: 100},   // bottom-right
+}
 
 // Add neighbors to the open list
 // Choose neighborsDirections
@@ -82,7 +76,7 @@ func (s *PathSearch) addNeighbors(point Point) {
 	for _, dir := range neighborsDirectionsDiagonal {
 		neighbor := Point{X: point.X + dir.X, Y: point.Y + dir.Y}
 		if neighbor.X >= 0 && neighbor.X <= s.moveMap.Width-100 &&
-		   neighbor.Y >= 0 && neighbor.Y <= s.moveMap.Height-100 {
+			neighbor.Y >= 0 && neighbor.Y <= s.moveMap.Height-100 {
 			s.consider(neighbor, point)
 		}
 	}
@@ -193,25 +187,27 @@ func UpdateMove(move *ecs.Component[Move], position *ecs.Component[Point], moveM
 		return
 	}
 	next := move.Value.Path[0]
-	if Distance(position.Value, next) < MOVE_SPEED {
-		position.Value = next
-		remainingPath := move.Value.Path[1:]
-		if next == move.Value.Destination {
-			move.Value.IsActive = false
-			slog.Info("move finished", slog.String("destination", move.Value.Destination.String()))
-		} else if remainingPath.isValid(moveMap) {
-			move.Value.Path = remainingPath
-		} else {
-			// Here maybe the destination has to change
-			path, ok := SearchPath(next, move.Value.Destination, moveMap)
-			if !ok {
-				slog.Info("no path found", slog.String("destination", move.Value.Destination.String()))
-				move.Value.IsActive = false
-			} else {
-				move.Value.Path = path[1:]
-			}
-		}
-	} else {
+	if Distance(position.Value, next) >= MOVE_SPEED {
 		moveToward(position, next)
+		return
 	}
+	position.Value = next
+	remainingPath := move.Value.Path[1:]
+	if next == move.Value.Destination {
+		move.Value.IsActive = false
+		slog.Info("move finished", slog.String("destination", move.Value.Destination.String()))
+		return
+	}
+	if remainingPath.isValid(moveMap) {
+		move.Value.Path = remainingPath
+		return
+	}
+	// Here maybe the destination has to change
+	path, ok := SearchPath(next, move.Value.Destination, moveMap)
+	if !ok {
+		slog.Info("no path found", slog.String("destination", move.Value.Destination.String()))
+		move.Value.IsActive = false
+		return
+	}
+	move.Value.Path = path[1:]
 }
