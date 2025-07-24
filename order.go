@@ -23,6 +23,9 @@ func (e *Entity) MainAction(g *Game, destination physics.Point, entityAtDestinat
 		return
 	}
 	if e.Move.IsEnabled {
+		if e.Order.IsEnabled {
+			e.Order.Value = nil
+		}
 		physics.StartMove(&e.Move, e.Position, destination, moveMap)
 		return
 	}

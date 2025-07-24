@@ -93,7 +93,6 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 		for _, e := range g.Entities {
 			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
 				e.MainAction(g, destination, entityAtDestination, moveMap)
-
 			}
 		}
 	}

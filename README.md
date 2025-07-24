@@ -16,7 +16,6 @@
 
 ## Bugs
 
-- select A, gather, move to B, (it stops), gather (no storage)
 - if B is < 1 cell away, it will go and merge with A
 - stops moving if someone settles at destination
 
