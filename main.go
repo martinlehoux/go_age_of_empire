@@ -124,15 +124,14 @@ func (g *Game) Update() error {
 		g.CurrentAction = Patrolling
 		slog.Info("patrolling action")
 	}
-	moveMap := g.getMoveMap()
 	switch g.CurrentAction {
 	case Selecting:
-		g.updateSelecting(cursor, moveMap)
+		g.updateSelecting(cursor, g.getMoveMap())
 	case Patrolling:
 		g.updatePatrolling(cursor)
 	}
 	for _, e := range g.Entities {
-		physics.UpdateMove(&e.Move, &e.Position, moveMap)
+		physics.UpdateMove(&e.Move, &e.Position, g.getMoveMap())
 		e.UpdateOrder(g)
 		UpdateSpawn(g, &e.Spawn, e.Position)
 	}
