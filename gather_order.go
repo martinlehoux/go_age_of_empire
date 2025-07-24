@@ -46,7 +46,7 @@ func (o *GatherOrder) updateGathererFull(e *Entity, g *Game, gatherer *ResourceG
 		return
 	}
 	storageDockings := getAllStorageDockings(g)
-	destination, distance := g.Closest(e.Position.Value, storageDockings)
+	destination, distance := physics.Closest(e.Position.Value, storageDockings, g.getMoveMap())
 	if distance == math.MaxInt {
 		slog.Info("no accessible storage, canceling gather order")
 		e.Order.Value = nil
@@ -65,7 +65,7 @@ func (o *GatherOrder) updateGathererFull(e *Entity, g *Game, gatherer *ResourceG
 
 func (o *GatherOrder) startMoveToSource(e *Entity, gatherer *ResourceGatherer, g *Game) {
 	sourceDockings := physics.AdjacentPoints(gatherer.CurrentTarget.Position.Value)
-	destination, distance := g.Closest(e.Position.Value, sourceDockings)
+	destination, distance := physics.Closest(e.Position.Value, sourceDockings, g.getMoveMap())
 	if distance == math.MaxInt {
 		slog.Info("no accessible storage, canceling gather order")
 		e.Order.Value = nil
@@ -92,7 +92,7 @@ func Gather(e *Entity, source *Entity, g *Game) Order {
 	e.Order.Value = &GatherOrder{source: source}
 	e.ResourceGatherer.Value.CurrentTarget = source
 	sourceDockings := physics.AdjacentPoints(source.Position.Value)
-	destination, distance := g.Closest(e.Position.Value, sourceDockings)
+	destination, distance := physics.Closest(e.Position.Value, sourceDockings, g.getMoveMap())
 	if distance == math.MaxInt {
 		slog.Info("no accessible storage, canceling gather order")
 		e.Order.Value = nil

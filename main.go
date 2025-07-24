@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/color"
 	_ "image/jpeg"
-	"math"
 	"os"
 	"runtime/pprof"
 	"time"
@@ -52,23 +51,6 @@ func (g *Game) getMoveMap() physics.MoveMap {
 		}
 	}
 	return physics.MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
-}
-
-func (g *Game) Closest(from physics.Point, candidates []physics.Point) (physics.Point, int) {
-	var closest physics.Point
-	closestDistance := math.MaxInt
-	moveMap := g.getMoveMap()
-	for _, dest := range candidates {
-		path, ok := physics.SearchPath(from, dest, moveMap)
-		if !ok {
-			continue
-		}
-		if len(path) < closestDistance {
-			closest = dest
-			closestDistance = len(path)
-		}
-	}
-	return closest, closestDistance
 }
 
 // TODO: This could be a maintained index
@@ -193,7 +175,7 @@ func main() {
 	game.Entities = append(game.Entities, &townCenter)
 	game.UnitBuilder = NewEntityBuilder().WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
 	for i := 0; i < 0; i++ {
-		spawnPosition, _ := game.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value))
+		spawnPosition, _ := physics.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value), game.getMoveMap())
 		person := game.UnitBuilder.Build()
 		person.Position = ecs.C(spawnPosition)
 		game.Entities = append(game.Entities, &person)

@@ -42,7 +42,7 @@ func UpdateSpawn(g *Game, spawn *ecs.Component[Spawn], position ecs.Component[ph
 	if len(spawn.Value.Requests) == 0 || now.Sub(spawn.Value.Requests[0].start) < time.Duration(spawn.Value.UnitSpawnDuration) {
 		return
 	}
-	spawnPosition, _ := g.Closest(position.Value, physics.AdjacentPoints(position.Value))
+	spawnPosition, _ := physics.Closest(position.Value, physics.AdjacentPoints(position.Value), g.getMoveMap())
 	unit := g.UnitBuilder.Build()
 	unit.Position = ecs.C(spawnPosition)
 	g.Entities = append(g.Entities, &unit)
