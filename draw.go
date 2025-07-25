@@ -58,6 +58,35 @@ func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
 	}
 }
 
+func drawTopBanner(screen *ebiten.Image, g *Game) {
+	screenBounds := screen.Bounds()
+	bannerHeight := float32(200)
+	vector.DrawFilledRect(screen, 0, 0, float32(screenBounds.Dx()), bannerHeight, color.White, true)
+	resourceText := fmt.Sprintf("Resources: %d", g.ResourceAmount)
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(25, 25)
+	op.ColorScale.ScaleWithColor(color.Black)
+	text.Draw(screen, resourceText, &text.GoTextFace{
+		Source: g.FaceSource,
+		Size:   100,
+	}, op)
+}
+
+func drawBottomBanner(screen *ebiten.Image, g *Game) {
+	screenBounds := screen.Bounds()
+	bannerHeight := float32(200)
+	bannerTop := screenBounds.Dy() - int(bannerHeight)
+	vector.DrawFilledRect(screen, 0, float32(bannerTop), float32(screenBounds.Dx()), bannerHeight, color.White, true)
+	selectedText := "Selection"
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(25, float64(float32(bannerTop)+25))
+	op.ColorScale.ScaleWithColor(color.Black)
+	text.Draw(screen, selectedText, &text.GoTextFace{
+		Source: g.FaceSource,
+		Size:   100,
+	}, op)
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	x, y := ebiten.CursorPosition()
 	cursor := physics.Point{X: x, Y: y}
@@ -68,15 +97,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.Selection.IsActive {
 		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(cursor.X-g.Selection.Start.X), float32(cursor.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 	}
-	bannerHeight := float32(200)
-	vector.DrawFilledRect(screen, 0, 0, float32(3200), bannerHeight, color.White, true)
 
-	resourceText := fmt.Sprintf("Resources: %d", g.ResourceAmount)
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(25, 25)
-	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, resourceText, &text.GoTextFace{
-		Source: g.FaceSource,
-		Size:   100,
-	}, op)
+	drawTopBanner(screen, g)
+
+	selected := make([]*Entity, 0, len(g.Entities))
+	for _, e := range g.Entities {
+		if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
+			selected = append(selected, e)
+		}
+	}
+	if len(selected) > 0 {
+		drawBottomBanner(screen, g)
+	}
 }

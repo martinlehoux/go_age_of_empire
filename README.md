@@ -6,9 +6,11 @@
 
 - time must come from engine, not now
 - see the current action (debug?)
+- spawner: show queue
 - keyboard config
 - bigger map
 - move the map view
+- Esc when selection => unselect
 - ecs array: on delete, replace by last and update id->index map
 - collision based move w smaller accuracy
 - perf: look for nil comparison -> more data oriented
