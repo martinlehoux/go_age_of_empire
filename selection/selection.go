@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const HALO_WIDTH = 10
+const HaloWidth = 10
 
 type Priority int
 

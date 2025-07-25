@@ -20,7 +20,7 @@ func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
 	screen.DrawImage(e.Image.Value, op)
 	if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
 		opt := &ebiten.DrawImageOptions{}
-		opt.GeoM.Translate(float64(e.Position.Value.X-selection.HALO_WIDTH/2), float64(e.Position.Value.Y-selection.HALO_WIDTH/2))
+		opt.GeoM.Translate(float64(e.Position.Value.X-selection.HaloWidth/2), float64(e.Position.Value.Y-selection.HaloWidth/2))
 		screen.DrawImage(e.Selection.Value.Halo, opt)
 		if e.ResourceSource.IsEnabled {
 			resourceText := fmt.Sprintf("%d", e.ResourceSource.Value.Remaining)
@@ -41,6 +41,10 @@ func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
 				Source: g.FaceSource,
 				Size:   40,
 			}, op)
+			if e.Spawn.Value.SpawnTarget.IsEnabled {
+				spawnTarget := e.Spawn.Value.SpawnTarget.Value
+				vector.DrawFilledCircle(screen, float32(spawnTarget.X+50), float32(spawnTarget.Y+50), 30, Red, true)
+			}
 		}
 		if e.Move.Value.IsActive {
 			last := e.Position.Value

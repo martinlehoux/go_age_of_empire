@@ -48,7 +48,7 @@ func (b EntityBuilder) WithImage(image *ebiten.Image) EntityBuilder {
 	return b
 }
 
-var red = color.RGBA{0xff, 0x00, 0x00, 0xff}
+var Red = color.RGBA{0xff, 0x00, 0x00, 0xff}
 
 func (b EntityBuilder) WithSelection(haloKind string, priority selection.Priority) EntityBuilder {
 	b.entity.Selection = ecs.C(selection.Selection{
@@ -58,9 +58,9 @@ func (b EntityBuilder) WithSelection(haloKind string, priority selection.Priorit
 	})
 	switch haloKind {
 	case "round":
-		b.entity.Selection.Value.Halo = NewStrokeCircleImage(110, selection.HALO_WIDTH, red)
+		b.entity.Selection.Value.Halo = NewStrokeCircleImage(110, selection.HaloWidth, Red)
 	case "square":
-		b.entity.Selection.Value.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HALO_WIDTH, red)
+		b.entity.Selection.Value.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HaloWidth, Red)
 	}
 	return b
 }

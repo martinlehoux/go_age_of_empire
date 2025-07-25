@@ -10,7 +10,7 @@
 - bigger map
 - move the map view
 - ecs array: on delete, replace by last and update id->index map
-- `ecs.Component[*ebiten.Image]` drop the pointer
+- collision based move w smaller accuracy
 - perf: look for nil comparison -> more data oriented
 - perf: keep a short array of selected
 
