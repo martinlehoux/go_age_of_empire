@@ -5,12 +5,12 @@
 ## TODO
 
 - time must come from engine, not now
-- selection priority: selecting units + building -> select only units
 - see the current action (debug?)
 - keyboard config
 - bigger map
 - move the map view
 - ecs array: on delete, replace by last and update id->index map
+- `ecs.Component[*ebiten.Image]` drop the pointer
 - perf: look for nil comparison -> more data oriented
 - perf: keep a short array of selected
 

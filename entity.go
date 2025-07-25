@@ -3,6 +3,7 @@ package main
 import (
 	"age_of_empires/ecs"
 	"age_of_empires/physics"
+	"age_of_empires/selection"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -11,7 +12,7 @@ import (
 type Entity struct {
 	Position         ecs.Component[physics.Point]
 	Image            ecs.Component[*ebiten.Image]
-	Selection        ecs.Component[Selection]
+	Selection        ecs.Component[selection.Selection]
 	Move             ecs.Component[physics.Move]
 	Order            ecs.Component[Order]
 	ResourceGatherer ecs.Component[ResourceGatherer]
@@ -49,16 +50,17 @@ func (b EntityBuilder) WithImage(image *ebiten.Image) EntityBuilder {
 
 var red = color.RGBA{0xff, 0x00, 0x00, 0xff}
 
-func (b EntityBuilder) WithSelection(haloKind string) EntityBuilder {
-	b.entity.Selection = ecs.C(Selection{
+func (b EntityBuilder) WithSelection(haloKind string, priority selection.Priority) EntityBuilder {
+	b.entity.Selection = ecs.C(selection.Selection{
 		IsSelected: false,
 		Halo:       nil,
+		Priority:   priority,
 	})
 	switch haloKind {
 	case "round":
-		b.entity.Selection.Value.Halo = NewStrokeCircleImage(110, SELECTION_HALO_WIDTH, red)
+		b.entity.Selection.Value.Halo = NewStrokeCircleImage(110, selection.HALO_WIDTH, red)
 	case "square":
-		b.entity.Selection.Value.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, SELECTION_HALO_WIDTH, red)
+		b.entity.Selection.Value.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HALO_WIDTH, red)
 	}
 	return b
 }

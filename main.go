@@ -3,6 +3,7 @@ package main
 import (
 	"age_of_empires/ecs"
 	"age_of_empires/physics"
+	"age_of_empires/selection"
 	"bytes"
 	"image"
 	"image/color"
@@ -28,15 +29,10 @@ const (
 
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
 
-type GlobalSelection struct {
-	IsActive bool
-	Start    physics.Point
-}
-
 type Game struct {
 	Entities       []*Entity
 	CurrentAction  Action
-	Selection      GlobalSelection
+	Selection      selection.GlobalSelection
 	ResourceAmount int
 	FaceSource     *text.GoTextFaceSource
 	UnitBuilder    EntityBuilder
@@ -80,15 +76,15 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if g.Selection.IsActive && physics.Distance(g.Selection.Start, cursor) > 10 {
+			selector := selection.NewMultiple(g.Selection.Start, cursor)
 			for _, e := range g.Entities {
-				e.SelectMultiple(cursor, g.Selection)
+				selector.Preselect(e.Position, e.Bounds(), &e.Selection)
 			}
+			selector.Select()
 		} else {
-			canBeSelected := true
+			selector := selection.NewSingle(cursor)
 			for _, e := range g.Entities {
-				if e.SelectSingle(cursor, canBeSelected) {
-					canBeSelected = false
-				}
+				selector.Select(e.Position, e.Bounds(), &e.Selection)
 			}
 		}
 		g.Selection.IsActive = false
@@ -168,11 +164,11 @@ func main() {
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
-	ironMine := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 1000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square").Build()
+	ironMine := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 1000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square", selection.Building).Build()
 	game.Entities = append(game.Entities, &ironMine)
-	townCenter := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square").WithSpawn(NewSpawn(50, 1*time.Second)).Build()
+	townCenter := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 2000}).WithImage(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square", selection.Building).WithSpawn(NewSpawn(50, 1*time.Second)).Build()
 	game.Entities = append(game.Entities, &townCenter)
-	game.UnitBuilder = NewEntityBuilder().WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round").WithMove().WithOrder().WithResourceGatherer(15)
+	game.UnitBuilder = NewEntityBuilder().WithImage(NewFilledCircleImage(100, color.White)).WithSelection("round", selection.Unit).WithMove().WithOrder().WithResourceGatherer(15)
 	for i := 0; i < 0; i++ {
 		spawnPosition, _ := physics.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value), game.getMoveMap())
 		person := game.UnitBuilder.Build()

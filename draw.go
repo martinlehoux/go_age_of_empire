@@ -2,6 +2,7 @@ package main
 
 import (
 	"age_of_empires/physics"
+	"age_of_empires/selection"
 	"fmt"
 	"image/color"
 
@@ -19,7 +20,7 @@ func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
 	screen.DrawImage(e.Image.Value, op)
 	if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
 		opt := &ebiten.DrawImageOptions{}
-		opt.GeoM.Translate(float64(e.Position.Value.X-SELECTION_HALO_WIDTH/2), float64(e.Position.Value.Y-SELECTION_HALO_WIDTH/2))
+		opt.GeoM.Translate(float64(e.Position.Value.X-selection.HALO_WIDTH/2), float64(e.Position.Value.Y-selection.HALO_WIDTH/2))
 		screen.DrawImage(e.Selection.Value.Halo, opt)
 		if e.ResourceSource.IsEnabled {
 			resourceText := fmt.Sprintf("%d", e.ResourceSource.Value.Remaining)
