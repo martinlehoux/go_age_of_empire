@@ -103,7 +103,9 @@ func (g *Game) updatePatrolling(cursor physics.Point) {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
 		for _, e := range g.Entities {
-			Patrol(e, destination)
+			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
+				Patrol(e.Position, e.Move, &e.Order, destination)
+			}
 		}
 		g.CurrentAction = Selecting
 	}

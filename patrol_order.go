@@ -1,6 +1,7 @@
 package main
 
 import (
+	"age_of_empires/ecs"
 	"age_of_empires/physics"
 
 	"golang.org/x/exp/slog"
@@ -24,13 +25,11 @@ func (o *PatrolOrder) Update(e *Entity, g *Game) {
 	}
 }
 
-func Patrol(e *Entity, destination physics.Point) Order {
-	if e.Selection.IsEnabled && e.Position.IsEnabled && e.Move.IsEnabled && e.Order.IsEnabled {
-		if e.Selection.Value.IsSelected {
-			origin := e.Position.Value
-			slog.Info("patrolling between", slog.String("origin", origin.String()), slog.String("destination", destination.String()))
-			e.Order.Value = &PatrolOrder{origin: origin, destination: destination}
-		}
+func Patrol(position ecs.Component[physics.Point], move ecs.Component[physics.Move], order *ecs.Component[Order], destination physics.Point) {
+	if !position.IsEnabled || !move.IsEnabled || !order.IsEnabled {
+		return
 	}
-	return &PatrolOrder{origin: e.Position.Value, destination: destination}
+	origin := position.Value
+	slog.Info("patrolling between", slog.String("origin", origin.String()), slog.String("destination", destination.String()))
+	order.Value = &PatrolOrder{origin: origin, destination: destination}
 }
