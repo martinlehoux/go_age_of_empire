@@ -20,6 +20,13 @@ func Normalize(p Point) Point {
 	return p.Div(int(Length(p)))
 }
 
+func Translate(r Rectangle, offset Point) Rectangle {
+	return Rectangle{
+		Min: r.Min.Add(offset),
+		Max: r.Max.Add(offset),
+	}
+}
+
 func AdjacentPoints(from Point) []Point {
 	return []Point{
 		from.Add(Point{X: 0, Y: -100}),

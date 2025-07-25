@@ -11,6 +11,7 @@ import (
 
 type Entity struct {
 	Position         ecs.Component[physics.Point]
+	RelBounds        ecs.Component[physics.Rectangle]
 	Image            ecs.Component[*ebiten.Image]
 	Selection        ecs.Component[selection.Selection]
 	Move             ecs.Component[physics.Move]
@@ -19,13 +20,6 @@ type Entity struct {
 	ResourceSource   ecs.Component[ResourceSource]
 	ResourceStorage  ecs.Component[ResourceStorage]
 	Spawn            ecs.Component[Spawn]
-}
-
-func (e Entity) Bounds() physics.Rectangle {
-	return physics.Rectangle{
-		Min: e.Position.Value,
-		Max: e.Position.Value.Add(e.Image.Value.Bounds().Size()),
-	}
 }
 
 type EntityBuilder struct {
@@ -43,8 +37,9 @@ func (b EntityBuilder) WithPosition(position physics.Point) EntityBuilder {
 	return b
 }
 
-func (b EntityBuilder) WithImage(image *ebiten.Image) EntityBuilder {
+func (b EntityBuilder) WithSolid(image *ebiten.Image) EntityBuilder {
 	b.entity.Image = ecs.C(image)
+	b.entity.RelBounds = ecs.C(image.Bounds())
 	return b
 }
 

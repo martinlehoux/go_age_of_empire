@@ -40,12 +40,12 @@ func NewMultiple(start physics.Point, end physics.Point) Multiple {
 	}
 }
 
-func (m *Multiple) Preselect(position ecs.Component[physics.Point], bounds physics.Rectangle, selection *ecs.Component[Selection]) {
-	if !selection.IsEnabled {
+func (m *Multiple) Preselect(position ecs.Component[physics.Point], relBounds ecs.Component[physics.Rectangle], selection *ecs.Component[Selection]) {
+	if !selection.IsEnabled || !position.IsEnabled || !relBounds.IsEnabled {
 		return
 	}
 	selection.Value.IsSelected = false
-	if m.Bounds.Overlaps(bounds) {
+	if m.Bounds.Overlaps(physics.Translate(relBounds.Value, position.Value)) {
 		m.Preselected = append(m.Preselected, selection)
 	}
 }
@@ -79,12 +79,12 @@ func NewSingle(cursor physics.Point) Single {
 	}
 }
 
-func (s *Single) Select(position ecs.Component[physics.Point], bounds physics.Rectangle, selection *ecs.Component[Selection]) {
-	if !selection.IsEnabled {
+func (s *Single) Select(position ecs.Component[physics.Point], relBounds ecs.Component[physics.Rectangle], selection *ecs.Component[Selection]) {
+	if !selection.IsEnabled || !position.IsEnabled || !relBounds.IsEnabled {
 		return
 	}
 	selection.Value.IsSelected = false
-	if s.HasSelected || !s.Cursor.In(bounds) {
+	if s.HasSelected || !s.Cursor.In(physics.Translate(relBounds.Value, position.Value)) {
 		return
 	}
 	selection.Value.IsSelected = true
