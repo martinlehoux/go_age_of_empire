@@ -1,9 +1,10 @@
 package main
 
 import (
-	"age_of_empires/physics"
 	"math"
 	"time"
+
+	"age_of_empires/physics"
 
 	"golang.org/x/exp/slog"
 )
@@ -23,7 +24,7 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 		return
 	}
 	if physics.Distance(e.Position.Value, gatherer.CurrentTarget.Position.Value) <= 100 {
-		o.updateGathering(gatherer, &gatherer.CurrentTarget.ResourceSource.Value)
+		o.updateGathering(g.Now(), gatherer, &gatherer.CurrentTarget.ResourceSource.Value)
 		return
 	}
 	if !e.Move.Value.IsActive {
@@ -31,8 +32,7 @@ func (o *GatherOrder) Update(e *Entity, g *Game) {
 	}
 }
 
-func (*GatherOrder) updateGathering(gatherer *ResourceGatherer, source *ResourceSource) {
-	now := time.Now()
+func (*GatherOrder) updateGathering(now time.Time, gatherer *ResourceGatherer, source *ResourceSource) {
 	if gatherer.CurrentVolume >= gatherer.MaxCapacity || gatherer.LastPickupTime.Add(200*time.Millisecond).After(now) {
 		return
 	}

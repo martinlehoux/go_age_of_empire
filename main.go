@@ -39,6 +39,10 @@ type Game struct {
 	UnitBuilder    EntityBuilder
 }
 
+func (g Game) Now() time.Time {
+	return time.Now()
+}
+
 // TODO: This could be a maintained index
 func (g *Game) getMoveMap() physics.MoveMap {
 	blocked := map[physics.Point]bool{}

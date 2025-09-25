@@ -4,7 +4,6 @@
 
 ## TODO
 
-- time must come from engine, not now
 - see the current action (debug?)
 - spawner: show queue
 - keyboard config

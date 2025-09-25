@@ -1,10 +1,11 @@
 package main
 
 import (
-	"age_of_empires/ecs"
-	"age_of_empires/physics"
 	"log/slog"
 	"time"
+
+	"age_of_empires/ecs"
+	"age_of_empires/physics"
 )
 
 type spawnRequest struct {
@@ -31,14 +32,14 @@ func (spawn *Spawn) AddRequest(g *Game) {
 		return
 	}
 	g.ResourceAmount -= spawn.UnitResourceCost
-	spawn.Requests = append(spawn.Requests, spawnRequest{start: time.Now()})
+	spawn.Requests = append(spawn.Requests, spawnRequest{start: g.Now()})
 }
 
 func UpdateSpawn(g *Game, spawn *ecs.Component[Spawn], position ecs.Component[physics.Point]) {
 	if !spawn.IsEnabled || !position.IsEnabled {
 		return
 	}
-	now := time.Now()
+	now := g.Now()
 	if len(spawn.Value.Requests) == 0 || now.Sub(spawn.Value.Requests[0].start) < time.Duration(spawn.Value.UnitSpawnDuration) {
 		return
 	}
