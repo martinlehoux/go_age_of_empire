@@ -20,13 +20,25 @@ const (
 	Building
 )
 
+type Selection struct {
+	IsSelected bool
+	Halo       *ebiten.Image
+	Priority   Priority
+}
+
 type GlobalSelection struct {
-	isActive bool
-	start    physics.Point
+	isActive  bool
+	start     physics.Point
+	buffer    []*ecs.Component[Selection]
+	selection []*ecs.Component[Selection]
 }
 
 func (s GlobalSelection) IsActive(cursor physics.Point) bool {
-	return s.isActive && physics.Distance(s.start, cursor) > 10
+	return s.isActive
+}
+
+func (s GlobalSelection) IsArea(cursor physics.Point) bool {
+	return physics.Distance(s.start, cursor) > 10
 }
 
 func (s *GlobalSelection) Clear() {
@@ -39,79 +51,70 @@ func (s *GlobalSelection) Start(point physics.Point) {
 	s.start = point
 }
 
-func (s *GlobalSelection) Select(cursor physics.Point) Multiple {
-	s.isActive = false
-	return NewMultiple(s.start, cursor)
+type SelectTarget struct {
+	Selection *ecs.Component[Selection]
+	Position  ecs.Component[physics.Point]
+	Bounds    ecs.Component[physics.Rectangle]
 }
 
-func (s *GlobalSelection) Draw(dst *ebiten.Image, cursor physics.Point) {
-	vector.StrokeRect(dst, float32(s.start.X), float32(s.start.Y), float32(cursor.X-s.start.X), float32(cursor.Y-s.start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+func (s GlobalSelection) Bounds(cursor physics.Point) physics.Rectangle {
+	return physics.Rectangle{
+		Min: s.start,
+		Max: cursor,
+	}.Canon()
 }
 
-type Selection struct {
-	IsSelected bool
-	Halo       *ebiten.Image
-	Priority   Priority
-}
-
-type Multiple struct {
-	Bounds      physics.Rectangle
-	Preselected []*ecs.Component[Selection]
-}
-
-func NewMultiple(start physics.Point, end physics.Point) Multiple {
-	return Multiple{
-		Bounds:      physics.Rectangle{Min: start, Max: end}.Canon(),
-		Preselected: []*ecs.Component[Selection]{},
+func (s *GlobalSelection) SelectMultiple(cursor physics.Point, components []SelectTarget) {
+	s.buffer = make([]*ecs.Component[Selection], 0)
+	s.selection = make([]*ecs.Component[Selection], 0)
+	for _, target := range components {
+		if target.Selection.IsEnabled && target.Position.IsEnabled && target.Bounds.IsEnabled {
+			target.Selection.Value.IsSelected = false
+			if s.Bounds(cursor).Overlaps(physics.Translate(target.Bounds.Value, target.Position.Value)) {
+				s.buffer = append(s.buffer, target.Selection)
+			}
+		}
 	}
-}
-
-func (m *Multiple) Preselect(position ecs.Component[physics.Point], relBounds ecs.Component[physics.Rectangle], selection *ecs.Component[Selection]) {
-	if !selection.IsEnabled || !position.IsEnabled || !relBounds.IsEnabled {
-		return
-	}
-	selection.Value.IsSelected = false
-	if m.Bounds.Overlaps(physics.Translate(relBounds.Value, position.Value)) {
-		m.Preselected = append(m.Preselected, selection)
-	}
-}
-
-func (m *Multiple) Select() {
-	if len(m.Preselected) == 0 {
+	if len(s.buffer) == 0 {
 		return
 	}
 	highestPriority := Priority(math.MaxInt)
-	for _, selection := range m.Preselected {
+	for _, selection := range s.buffer {
 		if selection.Value.Priority < highestPriority {
 			highestPriority = selection.Value.Priority
 		}
 	}
-	for _, selection := range m.Preselected {
+	for _, selection := range s.buffer {
 		if selection.Value.Priority == highestPriority {
 			selection.Value.IsSelected = true
+			s.selection = append(s.selection, selection)
 		}
 	}
+	s.Clear()
 }
 
-type Single struct {
-	Cursor      physics.Point
-	HasSelected bool
+func (s *GlobalSelection) SelectSingle(cursor physics.Point, components []SelectTarget) {
+	s.selection = []*ecs.Component[Selection]{}
+	for _, target := range components {
+		if target.Selection.IsEnabled && target.Position.IsEnabled && target.Bounds.IsEnabled {
+			target.Selection.Value.IsSelected = false
+			if cursor.In(physics.Translate(target.Bounds.Value, target.Position.Value)) {
+				if len(s.selection) == 0 || target.Selection.Value.Priority > s.selection[0].Value.Priority {
+					s.selection = []*ecs.Component[Selection]{target.Selection}
+				}
+			}
+		}
+	}
+	s.Clear()
 }
 
-func NewSingle(cursor physics.Point) Single {
-	return Single{
-		Cursor:      cursor,
-		HasSelected: false,
+func (s *GlobalSelection) Unselect() {
+	for _, selection := range s.selection {
+		selection.Value.IsSelected = false
 	}
+	s.selection = []*ecs.Component[Selection]{}
 }
 
-func (s *Single) Select(position ecs.Component[physics.Point], relBounds ecs.Component[physics.Rectangle], selection *ecs.Component[Selection]) {
-	if !selection.IsEnabled || !position.IsEnabled || !relBounds.IsEnabled {
-		return
-	}
-	selection.Value.IsSelected = false
-	if s.HasSelected || !s.Cursor.In(physics.Translate(relBounds.Value, position.Value)) {
-		return
-	}
-	selection.Value.IsSelected = true
+func (s *GlobalSelection) Draw(dst *ebiten.Image, cursor physics.Point) {
+	vector.StrokeRect(dst, float32(s.start.X), float32(s.start.Y), float32(cursor.X-s.start.X), float32(cursor.Y-s.start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 }

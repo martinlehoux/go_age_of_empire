@@ -67,7 +67,7 @@ const (
 
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
-		g.Selection.Clear()
+		g.Selection.Unselect()
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Selection.Start(cursor)
@@ -84,18 +84,21 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if g.Selection.IsActive(cursor) {
-			selector := g.Selection.Select(cursor)
-			for _, e := range g.Entities {
-				selector.Preselect(e.Position, e.RelBounds, &e.Selection)
+			// TODO: simplify with component columns
+			targets := make([]selection.SelectTarget, len(g.Entities))
+			for i, e := range g.Entities {
+				targets[i] = selection.SelectTarget{
+					Selection: &e.Selection,
+					Position:  e.Position,
+					Bounds:    e.RelBounds,
+				}
 			}
-			selector.Select()
-		} else {
-			selector := selection.NewSingle(cursor)
-			for _, e := range g.Entities {
-				selector.Select(e.Position, e.RelBounds, &e.Selection)
+			if g.Selection.IsArea(cursor) {
+				g.Selection.SelectMultiple(cursor, targets)
+			} else {
+				g.Selection.SelectSingle(cursor, targets)
 			}
 		}
-		g.Selection.Clear()
 	}
 	if inpututil.IsKeyJustReleased(KeySpawnRequest) {
 		for _, e := range g.Entities {
