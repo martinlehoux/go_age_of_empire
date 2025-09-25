@@ -1,10 +1,11 @@
 package main
 
 import (
-	"age_of_empires/physics"
-	"age_of_empires/selection"
 	"fmt"
 	"image/color"
+
+	"age_of_empires/physics"
+	"age_of_empires/selection"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -94,8 +95,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, e := range g.Entities {
 		e.Draw(g, screen)
 	}
-	if g.Selection.IsActive {
-		vector.StrokeRect(screen, float32(g.Selection.Start.X), float32(g.Selection.Start.Y), float32(cursor.X-g.Selection.Start.X), float32(cursor.Y-g.Selection.Start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+	if g.Selection.IsActive(cursor) {
+		g.Selection.Draw(screen, cursor)
 	}
 
 	drawTopBanner(screen, g)

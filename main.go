@@ -1,9 +1,6 @@
 package main
 
 import (
-	"age_of_empires/ecs"
-	"age_of_empires/physics"
-	"age_of_empires/selection"
 	"bytes"
 	"image"
 	"image/color"
@@ -11,6 +8,10 @@ import (
 	"os"
 	"runtime/pprof"
 	"time"
+
+	"age_of_empires/ecs"
+	"age_of_empires/physics"
+	"age_of_empires/selection"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -59,10 +60,17 @@ func (g *Game) entityAt(position physics.Point) *Entity {
 	return nil
 }
 
+const (
+	KeySpawnRequest  = ebiten.KeyS
+	KeyPatrolRequest = ebiten.KeyA // TODO: Should be Q
+)
+
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
+	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
+		g.Selection.Clear()
+	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		g.Selection.Start = cursor
-		g.Selection.IsActive = true
+		g.Selection.Start(cursor)
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
@@ -75,8 +83,8 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if g.Selection.IsActive && physics.Distance(g.Selection.Start, cursor) > 10 {
-			selector := selection.NewMultiple(g.Selection.Start, cursor)
+		if g.Selection.IsActive(cursor) {
+			selector := g.Selection.Select(cursor)
 			for _, e := range g.Entities {
 				selector.Preselect(e.Position, e.RelBounds, &e.Selection)
 			}
@@ -87,9 +95,9 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 				selector.Select(e.Position, e.RelBounds, &e.Selection)
 			}
 		}
-		g.Selection.IsActive = false
+		g.Selection.Clear()
 	}
-	if inpututil.IsKeyJustReleased(ebiten.KeyS) {
+	if inpututil.IsKeyJustReleased(KeySpawnRequest) {
 		for _, e := range g.Entities {
 			if !e.Selection.IsEnabled || !e.Selection.Value.IsSelected || !e.Spawn.IsEnabled {
 				continue
@@ -118,7 +126,7 @@ func (g *Game) Update() error {
 		g.CurrentAction = Selecting
 		slog.Info("selecting action")
 	}
-	if inpututil.IsKeyJustReleased(ebiten.KeyA) { // Should be Q
+	if inpututil.IsKeyJustReleased(KeyPatrolRequest) {
 		g.CurrentAction = Patrolling
 		slog.Info("patrolling action")
 	}

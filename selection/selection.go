@@ -1,11 +1,14 @@
 package selection
 
 import (
-	"age_of_empires/ecs"
-	"age_of_empires/physics"
+	"image/color"
 	"math"
 
+	"age_of_empires/ecs"
+	"age_of_empires/physics"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const HaloWidth = 10
@@ -18,8 +21,31 @@ const (
 )
 
 type GlobalSelection struct {
-	IsActive bool
-	Start    physics.Point
+	isActive bool
+	start    physics.Point
+}
+
+func (s GlobalSelection) IsActive(cursor physics.Point) bool {
+	return s.isActive && physics.Distance(s.start, cursor) > 10
+}
+
+func (s *GlobalSelection) Clear() {
+	s.isActive = false
+	s.start = physics.Point{}
+}
+
+func (s *GlobalSelection) Start(point physics.Point) {
+	s.isActive = true
+	s.start = point
+}
+
+func (s *GlobalSelection) Select(cursor physics.Point) Multiple {
+	s.isActive = false
+	return NewMultiple(s.start, cursor)
+}
+
+func (s *GlobalSelection) Draw(dst *ebiten.Image, cursor physics.Point) {
+	vector.StrokeRect(dst, float32(s.start.X), float32(s.start.Y), float32(cursor.X-s.start.X), float32(cursor.Y-s.start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 }
 
 type Selection struct {
