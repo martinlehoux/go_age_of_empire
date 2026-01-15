@@ -75,7 +75,6 @@ func (g *Game) Append(components Components, mask ecs.Mask) ecs.Entity {
 	return ecs.Entity(len(g.Mask) - 1)
 }
 
-// TODO: This could be a maintained index
 func (g *Game) getMoveMap() physics.MoveMap {
 	required := ecs.CM_Position
 	blocked := map[physics.Point]bool{}
@@ -87,7 +86,6 @@ func (g *Game) getMoveMap() physics.MoveMap {
 	return physics.MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
-// TODO: This could be a maintained index
 func (g *Game) entityAt(position physics.Point) ecs.Entity {
 	required := ecs.CM_Position
 	for i, mask := range g.Mask {
@@ -112,7 +110,7 @@ func getAllStorageDockings(g *Game) []physics.Point {
 
 const (
 	KeySpawnRequest  = ebiten.KeyS
-	KeyPatrolRequest = ebiten.KeyA // TODO: Should be Q
+	KeyPatrolRequest = ebiten.KeyA
 )
 
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
