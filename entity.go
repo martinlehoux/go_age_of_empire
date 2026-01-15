@@ -1,95 +1,107 @@
 package main
 
 import (
+	"image/color"
+
 	"age_of_empires/ecs"
 	"age_of_empires/physics"
 	"age_of_empires/selection"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Entity struct {
-	Position         ecs.Component[physics.Point]
-	RelBounds        ecs.Component[physics.Rectangle]
-	Image            ecs.Component[*ebiten.Image]
-	Selection        ecs.Component[selection.Selection]
-	Move             ecs.Component[physics.Move]
-	Order            ecs.Component[Order]
-	ResourceGatherer ecs.Component[ResourceGatherer]
-	ResourceSource   ecs.Component[ResourceSource]
-	ResourceStorage  ecs.Component[ResourceStorage]
-	Spawn            ecs.Component[Spawn]
+type Components struct {
+	Position         physics.Point
+	RelBounds        physics.Rectangle
+	Image            *ebiten.Image
+	Selection        selection.Selection
+	Move             physics.Move
+	Order            OrderKind
+	ResourceGatherer ResourceGatherer
+	ResourceSource   ResourceSource
+	ResourceStorage  ResourceStorage
+	Spawn            Spawn
 }
 
 type EntityBuilder struct {
-	entity Entity
+	mask       ecs.Mask
+	components Components
 }
 
 func NewEntityBuilder() EntityBuilder {
 	return EntityBuilder{
-		entity: Entity{},
+		components: Components{},
 	}
 }
 
 func (b EntityBuilder) WithPosition(position physics.Point) EntityBuilder {
-	b.entity.Position = ecs.C(position)
+	b.components.Position = position
+	b.mask |= ecs.CM_Position
 	return b
 }
 
 func (b EntityBuilder) WithSolid(image *ebiten.Image) EntityBuilder {
-	b.entity.Image = ecs.C(image)
-	b.entity.RelBounds = ecs.C(image.Bounds())
+	b.components.Image = image
+	b.mask |= ecs.CM_Image
+	b.components.RelBounds = image.Bounds()
+	b.mask |= ecs.CM_RelBounds
 	return b
 }
 
 var Red = color.RGBA{0xff, 0x00, 0x00, 0xff}
 
 func (b EntityBuilder) WithSelection(haloKind string, priority selection.Priority) EntityBuilder {
-	b.entity.Selection = ecs.C(selection.Selection{
+	b.components.Selection = selection.Selection{
 		IsSelected: false,
 		Halo:       nil,
 		Priority:   priority,
-	})
+	}
+	b.mask |= ecs.CM_Selection
 	switch haloKind {
 	case "round":
-		b.entity.Selection.Value.Halo = NewStrokeCircleImage(110, selection.HaloWidth, Red)
+		b.components.Selection.Halo = NewStrokeCircleImage(110, selection.HaloWidth, Red)
 	case "square":
-		b.entity.Selection.Value.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HaloWidth, Red)
+		b.components.Selection.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HaloWidth, Red)
 	}
 	return b
 }
 
 func (b EntityBuilder) WithResourceStorage() EntityBuilder {
-	b.entity.ResourceStorage = ecs.C(ResourceStorage{})
+	b.components.ResourceStorage = ResourceStorage{}
+	b.mask |= ecs.CM_ResourceStorage
 	return b
 }
 
 func (b EntityBuilder) WithResourceSource(amount int) EntityBuilder {
-	b.entity.ResourceSource = ecs.C(ResourceSource{Remaining: amount})
+	b.components.ResourceSource = ResourceSource{Remaining: amount}
+	b.mask |= ecs.CM_ResourceSource
 	return b
 }
 
 func (b EntityBuilder) WithSpawn(spawn Spawn) EntityBuilder {
-	b.entity.Spawn = ecs.C(spawn)
+	b.components.Spawn = spawn
+	b.mask |= ecs.CM_Spawn
 	return b
 }
 
 func (b EntityBuilder) WithMove() EntityBuilder {
-	b.entity.Move = ecs.C(physics.Move{IsActive: false})
+	b.components.Move = physics.Move{IsActive: false}
+	b.mask |= ecs.CM_Move
 	return b
 }
 
 func (b EntityBuilder) WithOrder() EntityBuilder {
-	b.entity.Order.IsEnabled = true
+	b.components.Order = OrderKindNone
+	b.mask |= ecs.CM_Order
 	return b
 }
 
 func (b EntityBuilder) WithResourceGatherer(maxCapacity int) EntityBuilder {
-	b.entity.ResourceGatherer = ecs.C(ResourceGatherer{MaxCapacity: maxCapacity})
+	b.components.ResourceGatherer = ResourceGatherer{MaxCapacity: maxCapacity}
+	b.mask |= ecs.CM_ResourceGatherer
 	return b
 }
 
-func (b EntityBuilder) Build() Entity {
-	return b.entity
+func (b EntityBuilder) Build() (Components, ecs.Mask) {
+	return b.components, b.mask
 }

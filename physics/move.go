@@ -1,9 +1,10 @@
 package physics
 
 import (
-	"age_of_empires/ecs"
 	"fmt"
 	"math"
+
+	"age_of_empires/ecs"
 
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
@@ -165,49 +166,50 @@ func (p *Path) isValid(moveMap MoveMap) bool {
 	return true
 }
 
-func StartMove(move *ecs.Component[Move], position ecs.Component[Point], destination Point, moveMap MoveMap) {
-	if move.IsEnabled && position.IsEnabled {
-		move.Value = NewMove(position.Value, destination, moveMap)
-		slog.Info("entity starting move", slog.String("destination", destination.String()))
-	}
-}
-
-func moveToward(position *ecs.Component[Point], destination Point) {
-	remainingMove := destination.Sub(position.Value)
+func moveToward(position Point, destination Point) Point {
+	remainingMove := destination.Sub(position)
 	delta := remainingMove.Mul(MOVE_SPEED).Div(int(Length(remainingMove)))
-	position.Value = position.Value.Add(delta)
+	return position.Add(delta)
 }
 
-func UpdateMove(move *ecs.Component[Move], position *ecs.Component[Point], moveMap MoveMap) {
-	if !move.IsEnabled || !position.IsEnabled || !move.Value.IsActive {
-		return
+func UpdateMoveSystem(moveMap MoveMap, masks []ecs.Mask, moves []Move, positions []Point) {
+	required := ecs.CM_Position | ecs.CM_Move
+	for i, mask := range masks {
+		if mask&required != required {
+			continue
+		}
+		move := &moves[i]
+		position := &positions[i]
+		if !move.IsActive {
+			continue
+		}
+		if len(move.Path) == 0 {
+			move.IsActive = false
+			continue
+		}
+		next := move.Path[0]
+		if Distance(*position, next) >= MOVE_SPEED {
+			*position = moveToward(*position, next)
+			continue
+		}
+		*position = next
+		remainingPath := move.Path[1:]
+		if next == move.Destination {
+			move.IsActive = false
+			slog.Info("move finished", slog.String("destination", move.Destination.String()))
+			continue
+		}
+		if remainingPath.isValid(moveMap) {
+			move.Path = remainingPath
+			continue
+		}
+		// Here maybe the destination has to change
+		path, ok := SearchPath(next, move.Destination, moveMap)
+		if !ok {
+			slog.Info("no path found", slog.String("destination", move.Destination.String()))
+			move.IsActive = false
+			continue
+		}
+		move.Path = path[1:]
 	}
-	if len(move.Value.Path) == 0 {
-		move.Value.IsActive = false
-		return
-	}
-	next := move.Value.Path[0]
-	if Distance(position.Value, next) >= MOVE_SPEED {
-		moveToward(position, next)
-		return
-	}
-	position.Value = next
-	remainingPath := move.Value.Path[1:]
-	if next == move.Value.Destination {
-		move.Value.IsActive = false
-		slog.Info("move finished", slog.String("destination", move.Value.Destination.String()))
-		return
-	}
-	if remainingPath.isValid(moveMap) {
-		move.Value.Path = remainingPath
-		return
-	}
-	// Here maybe the destination has to change
-	path, ok := SearchPath(next, move.Value.Destination, moveMap)
-	if !ok {
-		slog.Info("no path found", slog.String("destination", move.Value.Destination.String()))
-		move.Value.IsActive = false
-		return
-	}
-	move.Value.Path = path[1:]
 }

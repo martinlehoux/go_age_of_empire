@@ -12,24 +12,35 @@ type PatrolOrder struct {
 	destination physics.Point
 }
 
-func (o *PatrolOrder) Update(e *Entity, g *Game) {
-	if e.Position.IsEnabled && e.Move.IsEnabled {
-		if !e.Move.Value.IsActive {
-			moveMap := g.getMoveMap()
-			if e.Position.Value == o.destination {
-				physics.StartMove(&e.Move, e.Position, o.origin, moveMap)
-			} else {
-				physics.StartMove(&e.Move, e.Position, o.destination, moveMap)
+func UpdatePatrolSystem(moveMap physics.MoveMap, masks []ecs.Mask, orders []OrderKind, patrols []PatrolOrder, positions []physics.Point, moves []physics.Move) {
+	required := ecs.CM_Position | ecs.CM_Move | ecs.CM_Order | ecs.CM_PatrolOrder
+	for i, mask := range masks {
+		if mask&required == required {
+			order := orders[i]
+			patrol := patrols[i]
+			position := positions[i]
+			move := &moves[i]
+			if order == OrderKindPatrol && !move.IsActive {
+				if position == patrol.destination {
+					*move = physics.NewMove(position, patrol.origin, moveMap)
+				} else {
+					*move = physics.NewMove(position, patrol.destination, moveMap)
+				}
 			}
 		}
 	}
 }
 
-func Patrol(position ecs.Component[physics.Point], move ecs.Component[physics.Move], order *ecs.Component[Order], destination physics.Point) {
-	if !position.IsEnabled || !move.IsEnabled || !order.IsEnabled {
-		return
+func StartPatrolSystem(destination physics.Point, masks []ecs.Mask, positions []physics.Point, moves []physics.Move, orders []OrderKind, patrols []PatrolOrder) {
+	required := ecs.CM_Position | ecs.CM_Order | ecs.CM_PatrolOrder
+	for i, mask := range masks {
+		if mask&required == required {
+			position := positions[i]
+			order := &orders[i]
+			patrol := &patrols[i]
+			slog.Info("patrolling between", slog.String("origin", position.String()), slog.String("destination", destination.String()))
+			*patrol = PatrolOrder{origin: position, destination: destination}
+			*order = OrderKindPatrol
+		}
 	}
-	origin := position.Value
-	slog.Info("patrolling between", slog.String("origin", origin.String()), slog.String("destination", destination.String()))
-	order.Value = &PatrolOrder{origin: origin, destination: destination}
 }

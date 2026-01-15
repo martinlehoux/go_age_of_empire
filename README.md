@@ -14,6 +14,11 @@
 - perf: look for nil comparison -> more data oriented
 - perf: keep a short array of selected and use it instead of `Value.IsSelected`
 - perf: component columns and systems
+- ecs: bitfield for fast checking
+- ecs: rename to systems
+- perf: measure frame budget
+- rename Selection to Selectable
+- extract todos in todo list
 
 ## Bugs
 

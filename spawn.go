@@ -5,55 +5,49 @@ import (
 	"time"
 
 	"age_of_empires/ecs"
+	"age_of_empires/monad"
 	"age_of_empires/physics"
 )
 
-type spawnRequest struct {
-	start time.Time
+type SpawnRequest struct {
+	Start time.Time
 }
 
 type Spawn struct {
 	UnitResourceCost  int
 	UnitSpawnDuration time.Duration
-	Requests          []spawnRequest
-	SpawnTarget       ecs.Component[physics.Point]
+	Requests          []SpawnRequest
+	SpawnTarget       monad.Option[physics.Point]
 }
 
 func NewSpawn(unitResourceCost int, unitSpawnDuration time.Duration) Spawn {
 	return Spawn{
 		UnitResourceCost:  unitResourceCost,
 		UnitSpawnDuration: unitSpawnDuration,
-		Requests:          make([]spawnRequest, 0),
+		Requests:          make([]SpawnRequest, 0),
 	}
 }
 
-func (spawn *Spawn) AddRequest(g *Game) {
-	if g.ResourceAmount < spawn.UnitResourceCost {
-		return
-	}
-	g.ResourceAmount -= spawn.UnitResourceCost
-	spawn.Requests = append(spawn.Requests, spawnRequest{start: g.Now()})
-}
-
-func UpdateSpawn(g *Game, spawn *ecs.Component[Spawn], position ecs.Component[physics.Point]) {
-	if !spawn.IsEnabled || !position.IsEnabled {
-		return
-	}
-	now := g.Now()
-	if len(spawn.Value.Requests) == 0 || now.Sub(spawn.Value.Requests[0].start) < time.Duration(spawn.Value.UnitSpawnDuration) {
-		return
-	}
-	spawnPosition, _ := physics.Closest(position.Value, physics.AdjacentPoints(position.Value), g.getMoveMap())
-	unit := g.UnitBuilder.Build()
-	unit.Position = ecs.C(spawnPosition)
-	g.Entities = append(g.Entities, &unit)
-	slog.Info("Spawned unit")
-	if spawn.Value.SpawnTarget.IsEnabled {
-		slog.Info("Unit has spawn target")
-		unit.MainAction(g, spawn.Value.SpawnTarget.Value, g.entityAt(spawn.Value.SpawnTarget.Value), g.getMoveMap())
-	}
-	spawn.Value.Requests = spawn.Value.Requests[1:]
-	if len(spawn.Value.Requests) > 0 {
-		spawn.Value.Requests[0].start = now
+func UpdateSpawnSystem(g *Game, now time.Time, masks []ecs.Mask, spawns []Spawn, positions []physics.Point) {
+	required := ecs.CM_Position | ecs.CM_Spawn
+	for i, mask := range masks {
+		if mask&required == required {
+			spawn := &spawns[i]
+			position := positions[i]
+			if len(spawn.Requests) == 0 || now.Sub(spawn.Requests[0].Start) < time.Duration(spawn.UnitSpawnDuration) {
+				continue
+			}
+			spawnPosition, _ := physics.Closest(position, physics.AdjacentPoints(position), g.getMoveMap())
+			unit := g.Append(g.UnitBuilder.WithPosition(spawnPosition).Build())
+			slog.Info("Spawned unit")
+			if spawn.SpawnTarget.Ok {
+				slog.Info("Unit has spawn target")
+				MainAction(g, unit, spawn.SpawnTarget.Value, g.getMoveMap())
+			}
+			spawn.Requests = spawn.Requests[1:]
+			if len(spawn.Requests) > 0 {
+				spawn.Requests[0].Start = now
+			}
+		}
 	}
 }

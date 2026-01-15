@@ -1,37 +1,41 @@
 package main
 
 import (
-	"age_of_empires/ecs"
-	"age_of_empires/physics"
 	"log/slog"
+
+	"age_of_empires/ecs"
+	"age_of_empires/monad"
+	"age_of_empires/physics"
 )
 
-type Order interface {
-	Update(e *Entity, g *Game)
-}
+type OrderKind int
 
-func (e *Entity) UpdateOrder(g *Game) {
-	if !e.Order.IsEnabled || e.Order.Value == nil {
-		return
-	}
-	e.Order.Value.Update(e, g)
-}
+const (
+	OrderKindNone OrderKind = iota
+	OrderKindPatrol
+	OrderKindGather
+)
 
-func (e *Entity) MainAction(g *Game, destination physics.Point, entityAtDestination *Entity, moveMap physics.MoveMap) {
-	if entityAtDestination != nil && entityAtDestination.ResourceSource.IsEnabled && e.ResourceGatherer.IsEnabled {
-		Gather(e, entityAtDestination, g)
+func MainAction(g *Game, mainEntity ecs.Entity, target physics.Point, moveMap physics.MoveMap) {
+	mask := g.Mask[mainEntity]
+	targetEntity := g.entityAt(target)
+	gatherTargetRequired := ecs.CM_ResourceSource
+	mainGatherRequired := ecs.CM_ResourceGatherer | ecs.CM_Move
+	if targetEntity >= 0 && (g.Mask[targetEntity]&gatherTargetRequired == gatherTargetRequired) && (mask&mainGatherRequired == mainGatherRequired) {
+		Gather(g.getMoveMap(), g.Position[mainEntity], &g.Move[mainEntity], &g.Order[mainEntity], &g.ResourceGatherer[mainEntity], targetEntity, g.Position[targetEntity])
 		return
 	}
-	if e.Move.IsEnabled {
-		if e.Order.IsEnabled {
-			e.Order.Value = nil
-		}
-		physics.StartMove(&e.Move, e.Position, destination, moveMap)
+	moveRequired := ecs.CM_Move | ecs.CM_Position
+	if mask&moveRequired == moveRequired {
+		position := g.Position[mainEntity]
+		g.Order[mainEntity] = OrderKindNone
+		g.Move[mainEntity] = physics.NewMove(position, target, moveMap)
 		return
 	}
-	if e.Spawn.IsEnabled {
+	if mask&ecs.CM_Spawn == ecs.CM_Spawn {
 		slog.Info("Setting spawn target")
-		e.Spawn.Value.SpawnTarget = ecs.C(destination)
+		spawn := &g.Spawn[mainEntity]
+		spawn.SpawnTarget = monad.Some(target)
 		return
 	}
 }

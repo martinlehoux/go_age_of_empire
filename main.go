@@ -31,37 +31,79 @@ const (
 var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
 
 type Game struct {
-	Entities       []*Entity
-	CurrentAction  Action
-	Selection      selection.GlobalSelection
-	ResourceAmount int
-	FaceSource     *text.GoTextFaceSource
-	UnitBuilder    EntityBuilder
+	CurrentAction   Action
+	GlobalSelection selection.GlobalSelection
+	ResourceAmount  int
+	FaceSource      *text.GoTextFaceSource
+	UnitBuilder     EntityBuilder
+	// Components
+	Mask []ecs.Mask
+	// Entities         []*Entity
+	Position         []physics.Point
+	RelBounds        []physics.Rectangle
+	Image            []*ebiten.Image
+	Selection        []selection.Selection
+	Move             []physics.Move
+	Order            []OrderKind
+	PatrolOrder      []PatrolOrder
+	ResourceGatherer []ResourceGatherer
+	ResourceSource   []ResourceSource
+	ResourceStorage  []ResourceStorage
+	Spawn            []Spawn
 }
 
 func (g Game) Now() time.Time {
 	return time.Now()
 }
 
+func (g *Game) Append(components Components, mask ecs.Mask) ecs.Entity {
+	g.Mask = append(g.Mask, mask)
+	g.Position = append(g.Position, components.Position)
+	g.RelBounds = append(g.RelBounds, components.RelBounds)
+	g.Image = append(g.Image, components.Image)
+	g.Selection = append(g.Selection, components.Selection)
+	g.Move = append(g.Move, components.Move)
+	g.Order = append(g.Order, components.Order)
+	g.ResourceGatherer = append(g.ResourceGatherer, components.ResourceGatherer)
+	g.ResourceSource = append(g.ResourceSource, components.ResourceSource)
+	g.ResourceStorage = append(g.ResourceStorage, components.ResourceStorage)
+	g.Spawn = append(g.Spawn, components.Spawn)
+	return ecs.Entity(len(g.Mask) - 1)
+}
+
 // TODO: This could be a maintained index
 func (g *Game) getMoveMap() physics.MoveMap {
+	required := ecs.CM_Position
 	blocked := map[physics.Point]bool{}
-	for _, e := range g.Entities {
-		if e.Position.IsEnabled {
-			blocked[e.Position.Value] = true
+	for i, mask := range g.Mask {
+		if mask&required == required {
+			blocked[g.Position[i]] = true
 		}
 	}
 	return physics.MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
 }
 
 // TODO: This could be a maintained index
-func (g *Game) entityAt(position physics.Point) *Entity {
-	for _, e := range g.Entities {
-		if e.Position.IsEnabled && e.Position.Value == position {
-			return e
+func (g *Game) entityAt(position physics.Point) ecs.Entity {
+	required := ecs.CM_Position
+	for i, mask := range g.Mask {
+		if mask&required == required && g.Position[i] == position {
+			return ecs.Entity(i)
 		}
 	}
-	return nil
+	return -1
+}
+
+func getAllStorageDockings(g *Game) []physics.Point {
+	storageDockings := []physics.Point{}
+	required := ecs.CM_Position | ecs.CM_ResourceStorage
+	for i, mask := range g.Mask {
+		if mask&required == required {
+			position := g.Position[i]
+			storageDockings = append(storageDockings, physics.AdjacentPoints(position)...)
+		}
+	}
+	return storageDockings
 }
 
 const (
@@ -71,58 +113,38 @@ const (
 
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
-		g.Selection.Unselect()
+		g.GlobalSelection.Unselect(g.Selection)
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		g.Selection.Start(cursor)
+		g.GlobalSelection.Start(cursor)
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
-		entityAtDestination := g.entityAt(destination)
 		slog.Info("destination", slog.String("destination", destination.String()))
-		for _, e := range g.Entities {
-			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-				e.MainAction(g, destination, entityAtDestination, moveMap)
-			}
+		for _, i := range g.GlobalSelection.Selected {
+			MainAction(g, i, destination, moveMap)
 		}
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if g.Selection.IsActive(cursor) {
-			// TODO: simplify with component columns
-			targets := make([]selection.SelectTarget, len(g.Entities))
-			for i, e := range g.Entities {
-				targets[i] = selection.SelectTarget{
-					Selection: &e.Selection,
-					Position:  e.Position,
-					Bounds:    e.RelBounds,
-				}
-			}
-			if g.Selection.IsArea(cursor) {
-				g.Selection.SelectMultiple(cursor, targets)
+		if g.GlobalSelection.IsActive(cursor) {
+			if g.GlobalSelection.IsArea(cursor) {
+				g.GlobalSelection.SelectMultiple(cursor, g.Mask, g.Selection, g.Position, g.RelBounds)
 			} else {
-				g.Selection.SelectSingle(cursor, targets)
+				g.GlobalSelection.SelectSingle(cursor, g.Mask, g.Selection, g.Position, g.RelBounds)
 			}
 		}
 	}
 	if inpututil.IsKeyJustReleased(KeySpawnRequest) {
-		for _, e := range g.Entities {
-			if !e.Selection.IsEnabled || !e.Selection.Value.IsSelected || !e.Spawn.IsEnabled {
-				continue
-			}
-			e.Spawn.Value.AddRequest(g)
-		}
-	}
-}
-
-func (g *Game) updatePatrolling(cursor physics.Point) {
-	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-		destination := cursor.Div(100).Mul(100)
-		for _, e := range g.Entities {
-			if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-				Patrol(e.Position, e.Move, &e.Order, destination)
+		required := ecs.CM_Spawn
+		for _, i := range g.GlobalSelection.Selected {
+			if g.Mask[i]&required == required {
+				spawn := &g.Spawn[i]
+				if g.ResourceAmount >= spawn.UnitResourceCost {
+					g.ResourceAmount -= spawn.UnitResourceCost
+					spawn.Requests = append(spawn.Requests, SpawnRequest{Start: g.Now()})
+				}
 			}
 		}
-		g.CurrentAction = Selecting
 	}
 }
 
@@ -141,13 +163,16 @@ func (g *Game) Update() error {
 	case Selecting:
 		g.updateSelecting(cursor, g.getMoveMap())
 	case Patrolling:
-		g.updatePatrolling(cursor)
+		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
+			destination := cursor.Div(100).Mul(100)
+			StartPatrolSystem(destination, g.Mask, g.Position, g.Move, g.Order, g.PatrolOrder)
+			g.CurrentAction = Selecting
+		}
 	}
-	for _, e := range g.Entities {
-		physics.UpdateMove(&e.Move, &e.Position, g.getMoveMap())
-		e.UpdateOrder(g)
-		UpdateSpawn(g, &e.Spawn, e.Position)
-	}
+	physics.UpdateMoveSystem(g.getMoveMap(), g.Mask, g.Move, g.Position)
+	UpdateSpawnSystem(g, g.Now(), g.Mask, g.Spawn, g.Position)
+	UpdateGatherSystem(g, g.Now(), g.getMoveMap(), g.Mask, g.Order, g.Position, g.Move, g.ResourceGatherer)
+	UpdatePatrolSystem(g.getMoveMap(), g.Mask, g.Order, g.PatrolOrder, g.Position, g.Move)
 	return nil
 }
 
@@ -167,7 +192,7 @@ func main() {
 	}
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logHandler))
-	ebiten.SetWindowSize(640, 480)
+	ebiten.SetWindowSize(960, 640)
 	ebiten.SetWindowTitle("Age of Empire")
 	icon, err := os.Open("icon-crop.jpg")
 	kcore.Expect(err, "failed to open icon")
@@ -181,16 +206,14 @@ func main() {
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
-	ironMine := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 1000}).WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square", selection.Building).Build()
-	game.Entities = append(game.Entities, &ironMine)
-	townCenter := NewEntityBuilder().WithPosition(physics.Point{X: 1000, Y: 2000}).WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square", selection.Building).WithSpawn(NewSpawn(50, 1*time.Second)).Build()
-	game.Entities = append(game.Entities, &townCenter)
+	ironMineBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square", selection.Building)
+	game.Append(ironMineBuilder.WithPosition(physics.Point{X: 1000, Y: 1000}).Build())
+	townCenterBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square", selection.Building).WithSpawn(NewSpawn(50, 1*time.Second))
+	townCenter := game.Append(townCenterBuilder.WithPosition(physics.Point{X: 1000, Y: 2000}).Build())
 	game.UnitBuilder = NewEntityBuilder().WithSolid(NewFilledCircleImage(100, color.White)).WithSelection("round", selection.Unit).WithMove().WithOrder().WithResourceGatherer(15)
 	for i := 0; i < 0; i++ {
-		spawnPosition, _ := physics.Closest(townCenter.Position.Value, physics.AdjacentPoints(townCenter.Position.Value), game.getMoveMap())
-		person := game.UnitBuilder.Build()
-		person.Position = ecs.C(spawnPosition)
-		game.Entities = append(game.Entities, &person)
+		spawnPosition, _ := physics.Closest(game.Position[townCenter], physics.AdjacentPoints(game.Position[townCenter]), game.getMoveMap())
+		game.Append(game.UnitBuilder.WithPosition(spawnPosition).Build())
 	}
 	game.CurrentAction = Selecting
 	ebiten.SetRunnableOnUnfocused(true)

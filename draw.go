@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 
+	"age_of_empires/ecs"
 	"age_of_empires/physics"
 	"age_of_empires/selection"
 
@@ -12,50 +13,73 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-func (e *Entity) Draw(g *Game, screen *ebiten.Image) {
-	if !e.Image.IsEnabled || !e.Position.IsEnabled {
-		return
+func (g *Game) Draw(screen *ebiten.Image) {
+	x, y := ebiten.CursorPosition()
+	cursor := physics.Point{X: x, Y: y}
+	screen.Fill(soilColor)
+
+	required := ecs.CM_Image | ecs.CM_Position
+	for i, mask := range g.Mask {
+		if mask&required == required {
+			position := g.Position[i]
+			image := g.Image[i]
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(position.X), float64(position.Y))
+			screen.DrawImage(image, op)
+			if mask&ecs.CM_Selection == ecs.CM_Selection {
+				selectable := g.Selection[i]
+				if selectable.IsSelected {
+					opt := &ebiten.DrawImageOptions{}
+					opt.GeoM.Translate(float64(position.X-selection.HaloWidth/2), float64(position.Y-selection.HaloWidth/2))
+					screen.DrawImage(selectable.Halo, opt)
+					if mask&ecs.CM_ResourceSource == ecs.CM_ResourceSource {
+						source := g.ResourceSource[i]
+						resourceText := fmt.Sprintf("%d", source.Remaining)
+						op := &text.DrawOptions{}
+						op.GeoM.Translate(float64(position.X+5), float64(position.Y+30))
+						op.ColorScale.ScaleWithColor(color.White)
+						text.Draw(screen, resourceText, &text.GoTextFace{
+							Source: g.FaceSource,
+							Size:   40,
+						}, op)
+					}
+					if mask&ecs.CM_Spawn == ecs.CM_Spawn {
+						spawn := g.Spawn[i]
+						spawnText := fmt.Sprintf("%d", len(spawn.Requests))
+						op := &text.DrawOptions{}
+						op.GeoM.Translate(float64(position.X+5), float64(position.Y+70))
+						op.ColorScale.ScaleWithColor(color.White)
+						text.Draw(screen, spawnText, &text.GoTextFace{
+							Source: g.FaceSource,
+							Size:   40,
+						}, op)
+						if spawn.SpawnTarget.Ok {
+							spawnTarget := spawn.SpawnTarget.Value
+							vector.DrawFilledCircle(screen, float32(spawnTarget.X+50), float32(spawnTarget.Y+50), 30, Red, true)
+						}
+					}
+					if mask&ecs.CM_Move == ecs.CM_Move {
+						move := g.Move[i]
+						dx := +image.Bounds().Dx() / 2
+						dy := +image.Bounds().Dy() / 2
+						last := position
+						for _, point := range move.Path {
+							vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+							last = point
+						}
+					}
+				}
+			}
+		}
 	}
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(e.Position.Value.X), float64(e.Position.Value.Y))
-	screen.DrawImage(e.Image.Value, op)
-	if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-		opt := &ebiten.DrawImageOptions{}
-		opt.GeoM.Translate(float64(e.Position.Value.X-selection.HaloWidth/2), float64(e.Position.Value.Y-selection.HaloWidth/2))
-		screen.DrawImage(e.Selection.Value.Halo, opt)
-		if e.ResourceSource.IsEnabled {
-			resourceText := fmt.Sprintf("%d", e.ResourceSource.Value.Remaining)
-			op := &text.DrawOptions{}
-			op.GeoM.Translate(float64(e.Position.Value.X+5), float64(e.Position.Value.Y+30))
-			op.ColorScale.ScaleWithColor(color.White)
-			text.Draw(screen, resourceText, &text.GoTextFace{
-				Source: g.FaceSource,
-				Size:   40,
-			}, op)
-		}
-		if e.Spawn.IsEnabled {
-			spawnText := fmt.Sprintf("%d", len(e.Spawn.Value.Requests))
-			op := &text.DrawOptions{}
-			op.GeoM.Translate(float64(e.Position.Value.X+5), float64(e.Position.Value.Y+70))
-			op.ColorScale.ScaleWithColor(color.White)
-			text.Draw(screen, spawnText, &text.GoTextFace{
-				Source: g.FaceSource,
-				Size:   40,
-			}, op)
-			if e.Spawn.Value.SpawnTarget.IsEnabled {
-				spawnTarget := e.Spawn.Value.SpawnTarget.Value
-				vector.DrawFilledCircle(screen, float32(spawnTarget.X+50), float32(spawnTarget.Y+50), 30, Red, true)
-			}
-		}
-		if e.Move.Value.IsActive {
-			last := e.Position.Value
-			dx := +e.Image.Value.Bounds().Dx() / 2
-			dy := +e.Image.Value.Bounds().Dy() / 2
-			for _, point := range e.Move.Value.Path {
-				vector.StrokeLine(screen, float32(last.X+dx), float32(last.Y+dy), float32(point.X+dx), float32(point.Y+dy), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
-				last = point
-			}
-		}
+	if g.GlobalSelection.IsActive(cursor) {
+		g.GlobalSelection.Draw(screen, cursor)
+	}
+
+	drawTopBanner(screen, g)
+
+	if len(g.GlobalSelection.Selected) > 0 {
+		drawBottomBanner(screen, g)
 	}
 }
 
@@ -86,28 +110,4 @@ func drawBottomBanner(screen *ebiten.Image, g *Game) {
 		Source: g.FaceSource,
 		Size:   100,
 	}, op)
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	x, y := ebiten.CursorPosition()
-	cursor := physics.Point{X: x, Y: y}
-	screen.Fill(soilColor)
-	for _, e := range g.Entities {
-		e.Draw(g, screen)
-	}
-	if g.Selection.IsActive(cursor) {
-		g.Selection.Draw(screen, cursor)
-	}
-
-	drawTopBanner(screen, g)
-
-	selected := make([]*Entity, 0, len(g.Entities))
-	for _, e := range g.Entities {
-		if e.Selection.IsEnabled && e.Selection.Value.IsSelected {
-			selected = append(selected, e)
-		}
-	}
-	if len(selected) > 0 {
-		drawBottomBanner(screen, g)
-	}
 }
