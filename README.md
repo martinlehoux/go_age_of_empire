@@ -2,6 +2,11 @@
 
 - Restart after kernel update until `glxinfo | grep "OpenGL version"` works
 
+## Testing
+
+- **Integration tests** Use `Update()` to run N ticks.
+- **Performance benchmarks**
+
 ## TODO
 
 - see the current action (debug?)
@@ -19,6 +24,7 @@
 - perf: measure frame budget
 - rename Selection to Selectable
 - extract todos in todo list
+- abstraction between ebiten and update to handle inputs in a simulation?
 
 ## Bugs
 

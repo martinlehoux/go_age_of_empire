@@ -36,6 +36,7 @@ type Game struct {
 	ResourceAmount  int
 	FaceSource      *text.GoTextFaceSource
 	UnitBuilder     EntityBuilder
+	NowFunc         func() time.Time
 	// Components
 	Mask []ecs.Mask
 	// Entities         []*Entity
@@ -53,6 +54,9 @@ type Game struct {
 }
 
 func (g Game) Now() time.Time {
+	if g.NowFunc != nil {
+		return g.NowFunc()
+	}
 	return time.Now()
 }
 
