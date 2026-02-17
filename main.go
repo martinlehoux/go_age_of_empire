@@ -43,7 +43,7 @@ type Game struct {
 	Position         []physics.Point
 	RelBounds        []physics.Rectangle
 	Image            []*ebiten.Image
-	Selection        []selection.Selection
+	Selectable       []selection.Selectable
 	Move             []physics.Move
 	Order            []OrderKind
 	PatrolOrder      []PatrolOrder
@@ -65,7 +65,7 @@ func (g *Game) Append(components Components, mask ecs.Mask) ecs.Entity {
 	g.Position = append(g.Position, components.Position)
 	g.RelBounds = append(g.RelBounds, components.RelBounds)
 	g.Image = append(g.Image, components.Image)
-	g.Selection = append(g.Selection, components.Selection)
+	g.Selectable = append(g.Selectable, components.Selectable)
 	g.Move = append(g.Move, components.Move)
 	g.Order = append(g.Order, components.Order)
 	g.ResourceGatherer = append(g.ResourceGatherer, components.ResourceGatherer)
@@ -115,7 +115,7 @@ const (
 
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
-		g.GlobalSelection.Unselect(g.Selection)
+		g.GlobalSelection.Unselect(g.Selectable)
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.GlobalSelection.Start(cursor)
@@ -130,9 +130,9 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		if g.GlobalSelection.IsActive(cursor) {
 			if g.GlobalSelection.IsArea(cursor) {
-				g.GlobalSelection.SelectMultiple(cursor, g.Mask, g.Selection, g.Position, g.RelBounds)
+				g.GlobalSelection.SelectMultiple(cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
 			} else {
-				g.GlobalSelection.SelectSingle(cursor, g.Mask, g.Selection, g.Position, g.RelBounds)
+				g.GlobalSelection.SelectSingle(cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
 			}
 		}
 	}
@@ -208,11 +208,11 @@ func main() {
 	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
-	ironMineBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelection("square", selection.Building)
+	ironMineBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelectable("square", selection.Building)
 	game.Append(ironMineBuilder.WithPosition(physics.Point{X: 1000, Y: 1000}).Build())
-	townCenterBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelection("square", selection.Building).WithSpawn(NewSpawn(50, 1*time.Second))
+	townCenterBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x0, 0x0, 0xff, 0xff})).WithResourceStorage().WithSelectable("square", selection.Building).WithSpawn(NewSpawn(50, 1*time.Second))
 	townCenter := game.Append(townCenterBuilder.WithPosition(physics.Point{X: 1000, Y: 2000}).Build())
-	game.UnitBuilder = NewEntityBuilder().WithSolid(NewFilledCircleImage(100, color.White)).WithSelection("round", selection.Unit).WithMove().WithOrder().WithResourceGatherer(15)
+	game.UnitBuilder = NewEntityBuilder().WithSolid(NewFilledCircleImage(100, color.White)).WithSelectable("round", selection.Unit).WithMove().WithOrder().WithResourceGatherer(15)
 	for i := 0; i < 0; i++ {
 		spawnPosition, _ := physics.Closest(game.Position[townCenter], physics.AdjacentPoints(game.Position[townCenter]), game.getMoveMap())
 		game.Append(game.UnitBuilder.WithPosition(spawnPosition).Build())

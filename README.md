@@ -22,7 +22,6 @@
 - [ ] ecs: bitfield for fast checking
 - [ ] ecs: rename to systems
 - [ ] perf: measure frame budget
-- [ ] rename Selection to Selectable
 - [ ] extract todos in todo list
 - [ ] abstraction between ebiten and update to handle inputs in a simulation?
 - [ ] getMoveMap could be a maintained index

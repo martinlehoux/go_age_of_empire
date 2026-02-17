@@ -6,7 +6,7 @@ const (
 	CM_Position Mask = 1 << iota
 	CM_RelBounds
 	CM_Image
-	CM_Selection
+	CM_Selectable
 	CM_Move
 	CM_Order
 	CM_PatrolOrder

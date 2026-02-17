@@ -20,7 +20,7 @@ const (
 	Building
 )
 
-type Selection struct {
+type Selectable struct {
 	IsSelected bool
 	Halo       *ebiten.Image
 	Priority   Priority
@@ -28,7 +28,7 @@ type Selection struct {
 
 type selectItem struct {
 	ecs.Entity
-	*Selection
+	*Selectable
 }
 
 type GlobalSelection struct {
@@ -57,9 +57,9 @@ func (s *GlobalSelection) Start(point physics.Point) {
 }
 
 type SelectTarget struct {
-	Selection *Selection
-	Position  physics.Point
-	Bounds    physics.Rectangle
+	Selectable *Selectable
+	Position   physics.Point
+	Bounds     physics.Rectangle
 }
 
 func (s GlobalSelection) Bounds(cursor physics.Point) physics.Rectangle {
@@ -69,19 +69,19 @@ func (s GlobalSelection) Bounds(cursor physics.Point) physics.Rectangle {
 	}.Canon()
 }
 
-func (s *GlobalSelection) SelectMultiple(cursor physics.Point, masks []ecs.Mask, selections []Selection, positions []physics.Point, bounds []physics.Rectangle) {
+func (s *GlobalSelection) SelectMultiple(cursor physics.Point, masks []ecs.Mask, selectables []Selectable, positions []physics.Point, bounds []physics.Rectangle) {
 	s.buffer = make([]selectItem, 0)
 	s.Selected = make([]ecs.Entity, 0)
-	required := ecs.CM_Position | ecs.CM_RelBounds | ecs.CM_Selection
+	required := ecs.CM_Position | ecs.CM_RelBounds | ecs.CM_Selectable
 	for i, mask := range masks {
 		if mask&required == required {
-			selection := &selections[i]
+			selectable := &selectables[i]
 			position := positions[i]
 			bound := bounds[i]
 
-			selection.IsSelected = false
+			selectable.IsSelected = false
 			if s.Bounds(cursor).Overlaps(physics.Translate(bound, position)) {
-				s.buffer = append(s.buffer, selectItem{ecs.Entity(i), selection})
+				s.buffer = append(s.buffer, selectItem{ecs.Entity(i), selectable})
 			}
 		}
 	}
@@ -103,19 +103,19 @@ func (s *GlobalSelection) SelectMultiple(cursor physics.Point, masks []ecs.Mask,
 	s.Clear()
 }
 
-func (s *GlobalSelection) SelectSingle(cursor physics.Point, masks []ecs.Mask, selections []Selection, positions []physics.Point, bounds []physics.Rectangle) {
+func (s *GlobalSelection) SelectSingle(cursor physics.Point, masks []ecs.Mask, selectables []Selectable, positions []physics.Point, bounds []physics.Rectangle) {
 	s.Selected = []ecs.Entity{}
 	s.buffer = []selectItem{}
-	required := ecs.CM_Position | ecs.CM_RelBounds | ecs.CM_Selection
+	required := ecs.CM_Position | ecs.CM_RelBounds | ecs.CM_Selectable
 	for i, mask := range masks {
 		if mask&required == required {
-			selection := &selections[i]
+			selectable := &selectables[i]
 			position := positions[i]
 			bound := bounds[i]
-			selection.IsSelected = false
+			selectable.IsSelected = false
 			if cursor.In(physics.Translate(bound, position)) {
-				if len(s.buffer) == 0 || selection.Priority > s.buffer[0].Priority {
-					s.buffer = []selectItem{{ecs.Entity(i), selection}}
+				if len(s.buffer) == 0 || selectable.Priority > s.buffer[0].Priority {
+					s.buffer = []selectItem{{ecs.Entity(i), selectable}}
 				}
 			}
 		}
@@ -127,9 +127,9 @@ func (s *GlobalSelection) SelectSingle(cursor physics.Point, masks []ecs.Mask, s
 	s.Clear()
 }
 
-func (s *GlobalSelection) Unselect(selections []Selection) {
+func (s *GlobalSelection) Unselect(selectables []Selectable) {
 	for _, i := range s.Selected {
-		selections[i].IsSelected = false
+		selectables[i].IsSelected = false
 	}
 	s.Selected = []ecs.Entity{}
 }

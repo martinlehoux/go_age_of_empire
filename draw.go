@@ -26,8 +26,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(position.X), float64(position.Y))
 			screen.DrawImage(image, op)
-			if mask&ecs.CM_Selection == ecs.CM_Selection {
-				selectable := g.Selection[i]
+			if mask&ecs.CM_Selectable == ecs.CM_Selectable {
+				selectable := g.Selectable[i]
 				if selectable.IsSelected {
 					opt := &ebiten.DrawImageOptions{}
 					opt.GeoM.Translate(float64(position.X-selection.HaloWidth/2), float64(position.Y-selection.HaloWidth/2))

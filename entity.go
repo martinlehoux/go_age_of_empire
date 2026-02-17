@@ -14,7 +14,7 @@ type Components struct {
 	Position         physics.Point
 	RelBounds        physics.Rectangle
 	Image            *ebiten.Image
-	Selection        selection.Selection
+	Selectable        selection.Selectable
 	Move             physics.Move
 	Order            OrderKind
 	ResourceGatherer ResourceGatherer
@@ -50,18 +50,18 @@ func (b EntityBuilder) WithSolid(image *ebiten.Image) EntityBuilder {
 
 var Red = color.RGBA{0xff, 0x00, 0x00, 0xff}
 
-func (b EntityBuilder) WithSelection(haloKind string, priority selection.Priority) EntityBuilder {
-	b.components.Selection = selection.Selection{
+func (b EntityBuilder) WithSelectable(haloKind string, priority selection.Priority) EntityBuilder {
+	b.components.Selectable = selection.Selectable{
 		IsSelected: false,
 		Halo:       nil,
 		Priority:   priority,
 	}
-	b.mask |= ecs.CM_Selection
+	b.mask |= ecs.CM_Selectable
 	switch haloKind {
 	case "round":
-		b.components.Selection.Halo = NewStrokeCircleImage(110, selection.HaloWidth, Red)
+		b.components.Selectable.Halo = NewStrokeCircleImage(110, selection.HaloWidth, Red)
 	case "square":
-		b.components.Selection.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HaloWidth, Red)
+		b.components.Selectable.Halo = NewStrokeRectangleImage(physics.Point{X: 110, Y: 110}, selection.HaloWidth, Red)
 	}
 	return b
 }
