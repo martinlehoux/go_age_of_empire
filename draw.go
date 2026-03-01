@@ -13,6 +13,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+func (g *Game) font(size float64) *text.GoTextFace {
+	f := &text.GoTextFace{Source: g.FaceSource, Size: size}
+	f.SetVariation(text.MustParseTag("wght"), 500)
+	return f
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	x, y := ebiten.CursorPosition()
 	cursor := physics.Point{X: x, Y: y}
@@ -38,10 +44,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 						op := &text.DrawOptions{}
 						op.GeoM.Translate(float64(position.X+5), float64(position.Y+30))
 						op.ColorScale.ScaleWithColor(color.White)
-						text.Draw(screen, resourceText, &text.GoTextFace{
-							Source: g.FaceSource,
-							Size:   40,
-						}, op)
+						text.Draw(screen, resourceText, g.font(40), op)
 					}
 					if mask&ecs.CM_Spawn == ecs.CM_Spawn {
 						spawn := g.Spawn[i]
@@ -49,10 +52,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 						op := &text.DrawOptions{}
 						op.GeoM.Translate(float64(position.X+5), float64(position.Y+70))
 						op.ColorScale.ScaleWithColor(color.White)
-						text.Draw(screen, spawnText, &text.GoTextFace{
-							Source: g.FaceSource,
-							Size:   40,
-						}, op)
+						text.Draw(screen, spawnText, g.font(40), op)
 						if spawn.SpawnTarget.Ok {
 							spawnTarget := spawn.SpawnTarget.Value
 							vector.DrawFilledCircle(screen, float32(spawnTarget.X+50), float32(spawnTarget.Y+50), 30, Red, true)
@@ -91,10 +91,7 @@ func drawTopBanner(screen *ebiten.Image, g *Game) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(25, 25)
 	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, resourceText, &text.GoTextFace{
-		Source: g.FaceSource,
-		Size:   100,
-	}, op)
+	text.Draw(screen, resourceText, g.font(100), op)
 }
 
 func drawBottomBanner(screen *ebiten.Image, g *Game) {
@@ -114,8 +111,5 @@ func drawBottomBanner(screen *ebiten.Image, g *Game) {
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(25, float64(float32(bannerTop)+25))
 	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, shortcuts, &text.GoTextFace{
-		Source: g.FaceSource,
-		Size:   60,
-	}, op)
+	text.Draw(screen, shortcuts, g.font(60), op)
 }

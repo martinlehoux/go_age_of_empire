@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/martinlehoux/kagamigo/kcore"
 	"golang.org/x/exp/slog"
-	"golang.org/x/image/font/gofont/goregular"
+
 )
 
 type Action string
@@ -205,7 +205,9 @@ func main() {
 	game := &Game{
 		ResourceAmount: 150,
 	}
-	s, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	fontData, err := os.ReadFile("fonts/Cinzel-VariableFont_wght.ttf")
+	kcore.Expect(err, "failed to read font")
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(fontData))
 	kcore.Expect(err, "failed to create font source")
 	game.FaceSource = s
 	ironMineBuilder := NewEntityBuilder().WithSolid(NewFilledRectangleImage(physics.Point{X: 100, Y: 100}, color.RGBA{0x80, 0x80, 0x80, 0xff})).WithResourceSource(1000).WithSelectable("square", selection.Building)

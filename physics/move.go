@@ -194,7 +194,7 @@ func UpdateMoveSystem(moveMap MoveMap, masks []ecs.Mask, moves []Move, positions
 		}
 		// About to snap to next cell — check it's still free
 		if moveMap.Blocked[next] {
-			slog.Info("cell blocked on arrival, repathing", slog.String("next", next.String()))
+			slog.Debug("cell blocked on arrival, repathing", slog.String("next", next.String()))
 			path, ok := SearchPath(*position, move.Destination, moveMap)
 			if !ok {
 				slog.Info("no path found", slog.String("destination", move.Destination.String()))
