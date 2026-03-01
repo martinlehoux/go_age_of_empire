@@ -192,7 +192,22 @@ func UpdateMoveSystem(moveMap MoveMap, masks []ecs.Mask, moves []Move, positions
 			*position = moveToward(*position, next)
 			continue
 		}
+		// About to snap to next cell — check it's still free
+		if moveMap.Blocked[next] {
+			slog.Info("cell blocked on arrival, repathing", slog.String("next", next.String()))
+			path, ok := SearchPath(*position, move.Destination, moveMap)
+			if !ok {
+				slog.Info("no path found", slog.String("destination", move.Destination.String()))
+				move.IsActive = false
+				continue
+			}
+			move.Path = path[1:]
+			continue
+		}
+		oldCell := Point{X: position.X / 100 * 100, Y: position.Y / 100 * 100}
 		*position = next
+		moveMap.Blocked[next] = true
+		delete(moveMap.Blocked, oldCell)
 		remainingPath := move.Path[1:]
 		if next == move.Destination {
 			move.IsActive = false

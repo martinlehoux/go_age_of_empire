@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"age_of_empires/physics"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGatherLoop(t *testing.T) {
@@ -61,4 +63,32 @@ func TestGatherLoop(t *testing.T) {
 	if !deposited {
 		t.Errorf("Unit failed to gather resources within %d ticks. ResourceAmount: %d", maxTicks, game.ResourceAmount)
 	}
+}
+
+func TestTwoEntitiesMovingToSameCellDontOverlap(t *testing.T) {
+	// Two units close together both ordered to the same cell should not overlap.
+	game := &Game{}
+
+	target := physics.Point{X: 500, Y: 0}
+
+	unitA := game.Append(NewEntityBuilder().
+		WithPosition(physics.Point{X: 200, Y: 0}).
+		WithMove().WithOrder().Build())
+	unitB := game.Append(NewEntityBuilder().
+		WithPosition(physics.Point{X: 100, Y: 0}).
+		WithMove().WithOrder().Build())
+
+	moveMap := game.getMoveMap()
+	MainAction(game, unitA, target, moveMap)
+	MainAction(game, unitB, target, moveMap)
+
+	// MOVE_SPEED=10, cell=100 → 10 ticks per cell. B detours around A → ~60 ticks.
+	for range 60 {
+		game.Update()
+	}
+
+	assert.False(t, game.Move[unitA].IsActive, "Entity A should have stopped moving")
+	assert.False(t, game.Move[unitB].IsActive, "Entity B should have stopped moving")
+	assert.NotEqual(t, game.Position[unitA], game.Position[unitB],
+		"Entity A and B should NOT overlap: A at %s, B at %s", game.Position[unitA], game.Position[unitB])
 }
