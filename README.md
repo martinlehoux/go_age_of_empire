@@ -22,7 +22,6 @@
 - [ ] ecs: bitfield for fast checking
 - [ ] ecs: rename to systems
 - [ ] perf: measure frame budget
-- [ ] extract todos in todo list
 - [ ] abstraction between ebiten and update to handle inputs in a simulation?
 - [ ] getMoveMap could be a maintained index
 - [ ] entityAt could be a maintained index
@@ -30,7 +29,6 @@
 
 ## Bugs
 
-- [ ] if B is < 1 cell away, it will go and merge with A
 - [ ] stops moving if someone settles at destination
 
 ## Dependencies

@@ -102,12 +102,20 @@ func drawBottomBanner(screen *ebiten.Image, g *Game) {
 	bannerHeight := float32(200)
 	bannerTop := screenBounds.Dy() - int(bannerHeight)
 	vector.DrawFilledRect(screen, 0, float32(bannerTop), float32(screenBounds.Dx()), bannerHeight, color.White, true)
-	selectedText := "Selection"
+
+	shortcuts := "[Right-click] Action  [A] Patrol  [Esc] Deselect"
+	for _, i := range g.GlobalSelection.Selected {
+		if g.Mask[i]&ecs.CM_Spawn == ecs.CM_Spawn {
+			shortcuts += "  [S] Spawn unit"
+			break
+		}
+	}
+
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(25, float64(float32(bannerTop)+25))
 	op.ColorScale.ScaleWithColor(color.Black)
-	text.Draw(screen, selectedText, &text.GoTextFace{
+	text.Draw(screen, shortcuts, &text.GoTextFace{
 		Source: g.FaceSource,
-		Size:   100,
+		Size:   60,
 	}, op)
 }
