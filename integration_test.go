@@ -1,10 +1,12 @@
 package main
 
 import (
+	"image/color"
 	"testing"
 	"time"
 
 	"age_of_empires/physics"
+	"age_of_empires/selection"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -90,21 +92,22 @@ func TestGatherLoop(t *testing.T) {
 	// Unit (Gatherer) at 0, 0
 	unitBuilder := NewEntityBuilder().
 		WithPosition(physics.Point{X: 0, Y: 0}).
+		WithSolid(NewFilledCircleImage(100, color.White)).
+		WithSelectable("round", selection.Unit).
 		WithMove().
 		WithOrder().
 		WithResourceGatherer(10)
-	unitID := game.Append(unitBuilder.Build())
+	game.Append(unitBuilder.Build())
 
 	// Set up simulated time
 	simTime := time.Now()
 	game.NowFunc = func() time.Time { return simTime }
 
-	// Simulate user selection: select the unit
-	game.GlobalSelection.Selected = append(game.GlobalSelection.Selected, unitID)
-
-	// Simulate right-click on mine position to trigger Gather via MainAction
-	minePosition := game.Position[mineID]
-	MainAction(game, unitID, minePosition, game.getMoveMap())
+	// Click unit to select, then right-click mine — same gesture as in-game
+	game.UpdateSimulation(Input{EscapePressed: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 50, Y: 50}, LeftMouseDown: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 50, Y: 50}, LeftMouseUp: true})
+	game.UpdateSimulation(Input{Cursor: game.Position[mineID], RightMouseUp: true})
 
 	initialResources := game.ResourceAmount
 	dt := 16 * time.Millisecond
@@ -114,7 +117,7 @@ func TestGatherLoop(t *testing.T) {
 
 	for i := 0; i < maxTicks; i++ {
 		simTime = simTime.Add(dt)
-		game.Update()
+		game.UpdateSimulation(Input{})
 
 		if game.ResourceAmount > initialResources {
 			deposited = true
@@ -132,21 +135,26 @@ func TestTwoEntitiesMovingToSameCellDontOverlap(t *testing.T) {
 	game := &Game{}
 
 	target := physics.Point{X: 500, Y: 0}
+	unitImg := NewFilledCircleImage(100, color.White)
 
 	unitA := game.Append(NewEntityBuilder().
 		WithPosition(physics.Point{X: 200, Y: 0}).
+		WithSolid(unitImg).WithSelectable("round", selection.Unit).
 		WithMove().WithOrder().Build())
 	unitB := game.Append(NewEntityBuilder().
 		WithPosition(physics.Point{X: 100, Y: 0}).
+		WithSolid(unitImg).WithSelectable("round", selection.Unit).
 		WithMove().WithOrder().Build())
 
-	moveMap := game.getMoveMap()
-	MainAction(game, unitA, target, moveMap)
-	MainAction(game, unitB, target, moveMap)
+	// Area-select both units then right-click target — same gesture as in-game
+	game.UpdateSimulation(Input{EscapePressed: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 50, Y: -50}, LeftMouseDown: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 350, Y: 50}, LeftMouseUp: true})
+	game.UpdateSimulation(Input{Cursor: target, RightMouseUp: true})
 
 	// MOVE_SPEED=10, cell=100 → 10 ticks per cell. B detours around A → ~60 ticks.
 	for range 60 {
-		game.Update()
+		game.UpdateSimulation(Input{})
 	}
 
 	assert.False(t, game.Move[unitA].IsActive, "Entity A should have stopped moving")

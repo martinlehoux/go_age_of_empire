@@ -14,7 +14,6 @@ import (
 	"age_of_empires/selection"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/martinlehoux/kagamigo/kcore"
 	"golang.org/x/exp/slog"
@@ -114,32 +113,28 @@ const (
 	KeyPatrolRequest = ebiten.KeyQ
 )
 
-func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
-	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
-		g.GlobalSelection.Unselect(g.Selectable)
+func (g *Game) updateSelecting(input Input, moveMap physics.MoveMap) {
+	if input.LeftMouseDown {
+		g.GlobalSelection.Start(input.Cursor)
+		g.GlobalSelection.StartScreen(input.ScreenCursor)
 	}
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		g.GlobalSelection.Start(cursor)
-		sx, sy := ebiten.CursorPosition()
-		g.GlobalSelection.StartScreen(physics.Point{X: sx, Y: sy})
-	}
-	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-		destination := cursor.Div(100).Mul(100)
+	if input.RightMouseUp {
+		destination := input.Cursor.Div(100).Mul(100)
 		slog.Info("destination", slog.String("destination", destination.String()))
 		for _, i := range g.GlobalSelection.Selected {
 			MainAction(g, i, destination, moveMap)
 		}
 	}
-	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-		if g.GlobalSelection.IsActive(cursor) {
-			if g.GlobalSelection.IsArea(cursor) {
-				g.GlobalSelection.SelectMultiple(cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
+	if input.LeftMouseUp {
+		if g.GlobalSelection.IsActive(input.Cursor) {
+			if g.GlobalSelection.IsArea(input.Cursor) {
+				g.GlobalSelection.SelectMultiple(input.Cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
 			} else {
-				g.GlobalSelection.SelectSingle(cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
+				g.GlobalSelection.SelectSingle(input.Cursor, g.Mask, g.Selectable, g.Position, g.RelBounds)
 			}
 		}
 	}
-	if inpututil.IsKeyJustReleased(KeySpawnRequest) {
+	if input.SpawnPressed {
 		required := ecs.CM_Spawn
 		for _, i := range g.GlobalSelection.Selected {
 			if g.Mask[i]&required == required {
@@ -153,32 +148,36 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	}
 }
 
-func (g *Game) Update() error {
-	g.Camera.Update(1.0 / 60.0)
-	sx, sy := ebiten.CursorPosition()
-	cursor := g.Camera.ScreenToWorld(sx, sy)
-	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
+func (g *Game) UpdateSimulation(input Input) {
+	moveMap := g.getMoveMap()
+
+	if input.EscapePressed {
+		g.GlobalSelection.Unselect(g.Selectable)
 		g.CurrentAction = Selecting
-		slog.Info("selecting action")
-	}
-	if inpututil.IsKeyJustReleased(KeyPatrolRequest) {
+	} else if input.PatrolPressed {
 		g.CurrentAction = Patrolling
-		slog.Info("patrolling action")
 	}
+
 	switch g.CurrentAction {
 	case Selecting:
-		g.updateSelecting(cursor, g.getMoveMap())
+		g.updateSelecting(input, moveMap)
 	case Patrolling:
-		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
-			destination := cursor.Div(100).Mul(100)
+		if input.RightMouseUp {
+			destination := input.Cursor.Div(100).Mul(100)
 			StartPatrolSystem(destination, g.Mask, g.Position, g.Move, g.Order, g.PatrolOrder)
 			g.CurrentAction = Selecting
 		}
 	}
-	physics.UpdateMoveSystem(g.getMoveMap(), g.Mask, g.Move, g.Position)
+
+	physics.UpdateMoveSystem(moveMap, g.Mask, g.Move, g.Position)
 	UpdateSpawnSystem(g, g.Now(), g.Mask, g.Spawn, g.Position)
 	UpdateGatherSystem(g, g.Now(), g.getMoveMap(), g.Mask, g.Order, g.Position, g.Move, g.ResourceGatherer)
 	UpdatePatrolSystem(g.getMoveMap(), g.Mask, g.Order, g.PatrolOrder, g.Position, g.Move)
+}
+
+func (g *Game) Update() error {
+	g.Camera.Update(1.0 / 60.0)
+	g.UpdateSimulation(CollectInput(&g.Camera))
 	return nil
 }
 

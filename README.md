@@ -4,7 +4,7 @@
 
 ## Testing
 
-- **Integration tests** Use `Update()` to run N ticks.
+- **Integration tests** Use `UpdateSimulation(Input{...})` to drive ticks with simulated inputs — no ebiten runtime needed.
 - **Performance benchmarks**
 
 ## TODO
@@ -21,7 +21,7 @@
 - [ ] ecs: bitfield for fast checking
 - [ ] ecs: rename to systems
 - [ ] perf: measure frame budget
-- [ ] abstraction between ebiten and update to handle inputs in a simulation?
+- [x] abstraction between ebiten and update to handle inputs in a simulation
 - [ ] getMoveMap could be a maintained index
 - [ ] entityAt could be a maintained index
 
