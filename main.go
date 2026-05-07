@@ -111,7 +111,7 @@ func getAllStorageDockings(g *Game) []physics.Point {
 
 const (
 	KeySpawnRequest  = ebiten.KeyS
-	KeyPatrolRequest = ebiten.KeyA
+	KeyPatrolRequest = ebiten.KeyQ
 )
 
 func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {

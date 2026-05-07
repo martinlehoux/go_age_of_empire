@@ -112,7 +112,7 @@ func drawBottomBanner(screen *ebiten.Image, g *Game) {
 	bannerTop := screenBounds.Dy() - int(bannerHeight)
 	vector.DrawFilledRect(screen, 0, float32(bannerTop), float32(screenBounds.Dx()), bannerHeight, color.White, true)
 
-	shortcuts := "[Right-click] Action  [A] Patrol  [Esc] Deselect"
+	shortcuts := "[Right-click] Action  [Q] Patrol  [Esc] Deselect"
 	for _, i := range g.GlobalSelection.Selected {
 		if g.Mask[i]&ecs.CM_Spawn == ecs.CM_Spawn {
 			shortcuts += "  [S] Spawn unit"
