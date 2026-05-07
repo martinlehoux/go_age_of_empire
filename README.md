@@ -25,7 +25,7 @@
 - [ ] getMoveMap could be a maintained index
 - [ ] entityAt could be a maintained index
 - [ ] KeyPatrolRequest shortcut should be Q
-- [ ] mise task manager
+- [x] mise task manager
 
 ## Bugs
 

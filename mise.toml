@@ -1,0 +1,8 @@
+[tasks.build]
+description = "Build the game binary"
+run = "go build -o bin/go_age_of_empire *.go"
+
+[tasks.run]
+description = "Build and run the game"
+depends = ["build"]
+run = "./bin/go_age_of_empire"
