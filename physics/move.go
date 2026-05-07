@@ -144,6 +144,20 @@ func (s *PathSearch) search() (Path, bool) {
 	return Path{}, false
 }
 
+func findNearestFreeAdjacent(from Point, blocked Point, moveMap MoveMap) (Point, bool) {
+	var free []Point
+	for _, p := range AdjacentPoints(blocked) {
+		if !moveMap.Blocked[p] {
+			free = append(free, p)
+		}
+	}
+	if len(free) == 0 {
+		return Point{}, false
+	}
+	dest, dist := Closest(from, free, moveMap)
+	return dest, dist != math.MaxInt
+}
+
 func NewMove(origin Point, destination Point, moveMap MoveMap) Move {
 	current := Point{
 		X: origin.X / 100 * 100,
@@ -192,12 +206,24 @@ func UpdateMoveSystem(moveMap MoveMap, masks []ecs.Mask, moves []Move, positions
 			*position = moveToward(*position, next)
 			continue
 		}
-		// About to snap to next cell — check it's still free
-		if moveMap.Blocked[next] {
+		// About to snap to next cell — check it's still free (exclude own cell)
+		currentCell := Point{X: position.X / 100 * 100, Y: position.Y / 100 * 100}
+		if moveMap.Blocked[next] && next != currentCell {
 			slog.Debug("cell blocked on arrival, repathing", slog.String("next", next.String()))
-			path, ok := SearchPath(*position, move.Destination, moveMap)
+			destination := move.Destination
+			if moveMap.Blocked[destination] {
+				newDest, ok := findNearestFreeAdjacent(*position, destination, moveMap)
+				if !ok {
+					slog.Info("no accessible cell near destination", slog.String("destination", destination.String()))
+					move.IsActive = false
+					continue
+				}
+				destination = newDest
+				move.Destination = newDest
+			}
+			path, ok := SearchPath(*position, destination, moveMap)
 			if !ok {
-				slog.Info("no path found", slog.String("destination", move.Destination.String()))
+				slog.Info("no path found", slog.String("destination", destination.String()))
 				move.IsActive = false
 				continue
 			}
@@ -219,9 +245,20 @@ func UpdateMoveSystem(moveMap MoveMap, masks []ecs.Mask, moves []Move, positions
 			continue
 		}
 		// Here maybe the destination has to change
-		path, ok := SearchPath(next, move.Destination, moveMap)
+		destination := move.Destination
+		if moveMap.Blocked[destination] && destination != next {
+			newDest, ok := findNearestFreeAdjacent(next, destination, moveMap)
+			if !ok {
+				slog.Info("no accessible cell near destination", slog.String("destination", destination.String()))
+				move.IsActive = false
+				continue
+			}
+			destination = newDest
+			move.Destination = newDest
+		}
+		path, ok := SearchPath(next, destination, moveMap)
 		if !ok {
-			slog.Info("no path found", slog.String("destination", move.Destination.String()))
+			slog.Info("no path found", slog.String("destination", destination.String()))
 			move.IsActive = false
 			continue
 		}

@@ -27,7 +27,8 @@
 
 ## Bugs
 
-- [ ] stops moving if someone settles at destination
+- [x] stops moving if someone settles at destination
+- [ ] spawner spawns 2 units instead of 1
 
 ## Dependencies
 

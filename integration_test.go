@@ -162,3 +162,40 @@ func TestTwoEntitiesMovingToSameCellDontOverlap(t *testing.T) {
 	assert.NotEqual(t, game.Position[unitA], game.Position[unitB],
 		"Entity A and B should NOT overlap: A at %s, B at %s", game.Position[unitA], game.Position[unitB])
 }
+
+func TestUnitDoesNotStopWhenDestinationOccupied(t *testing.T) {
+	// Unit B is far away, unit A is close. Both ordered to the same cell.
+	// A arrives first and settles. B should repath to an adjacent free cell
+	// rather than stopping mid-journey.
+	game := &Game{}
+	game.CurrentAction = Selecting
+	unitImg := NewFilledCircleImage(100, color.White)
+
+	target := physics.Point{X: 500, Y: 0}
+
+	unitA := game.Append(NewEntityBuilder().
+		WithPosition(physics.Point{X: 400, Y: 0}).
+		WithSolid(unitImg).WithSelectable("round", selection.Unit).
+		WithMove().WithOrder().Build())
+	unitB := game.Append(NewEntityBuilder().
+		WithPosition(physics.Point{X: 0, Y: 0}).
+		WithSolid(unitImg).WithSelectable("round", selection.Unit).
+		WithMove().WithOrder().Build())
+
+	game.UpdateSimulation(Input{EscapePressed: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 50, Y: -50}, LeftMouseDown: true})
+	game.UpdateSimulation(Input{Cursor: physics.Point{X: 450, Y: 50}, LeftMouseUp: true})
+	game.UpdateSimulation(Input{Cursor: target, RightMouseUp: true})
+
+	// Run long enough for both units to settle (B travels ~5 cells)
+	for range 100 {
+		game.UpdateSimulation(Input{})
+	}
+
+	assert.False(t, game.Move[unitA].IsActive, "unit A should have stopped")
+	assert.False(t, game.Move[unitB].IsActive, "unit B should have stopped near target, not mid-journey")
+	assert.NotEqual(t, game.Position[unitA], game.Position[unitB], "units should not overlap")
+	// B should be adjacent to target, not stuck far away
+	assert.LessOrEqual(t, physics.Distance(game.Position[unitB], target), 150.0,
+		"unit B should be adjacent to target, got %s", game.Position[unitB])
+}
