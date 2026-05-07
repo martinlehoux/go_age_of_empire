@@ -21,13 +21,11 @@
 - [ ] ecs: bitfield for fast checking
 - [ ] ecs: rename to systems
 - [ ] perf: measure frame budget
-- [x] abstraction between ebiten and update to handle inputs in a simulation
 - [ ] getMoveMap could be a maintained index
 - [ ] entityAt could be a maintained index
 
 ## Bugs
 
-- [x] stops moving if someone settles at destination
 - [ ] spawner spawns 2 units instead of 1
 
 ## Dependencies
