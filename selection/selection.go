@@ -32,10 +32,11 @@ type selectItem struct {
 }
 
 type GlobalSelection struct {
-	isActive bool
-	start    physics.Point
-	buffer   []selectItem
-	Selected []ecs.Entity
+	isActive    bool
+	start       physics.Point
+	startScreen physics.Point
+	buffer      []selectItem
+	Selected    []ecs.Entity
 }
 
 func (s GlobalSelection) IsActive(cursor physics.Point) bool {
@@ -54,6 +55,10 @@ func (s *GlobalSelection) Clear() {
 func (s *GlobalSelection) Start(point physics.Point) {
 	s.isActive = true
 	s.start = point
+}
+
+func (s *GlobalSelection) StartScreen(point physics.Point) {
+	s.startScreen = point
 }
 
 type SelectTarget struct {
@@ -134,6 +139,6 @@ func (s *GlobalSelection) Unselect(selectables []Selectable) {
 	s.Selected = []ecs.Entity{}
 }
 
-func (s *GlobalSelection) Draw(dst *ebiten.Image, cursor physics.Point) {
-	vector.StrokeRect(dst, float32(s.start.X), float32(s.start.Y), float32(cursor.X-s.start.X), float32(cursor.Y-s.start.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+func (s *GlobalSelection) Draw(dst *ebiten.Image, screenCursor physics.Point) {
+	vector.StrokeRect(dst, float32(s.startScreen.X), float32(s.startScreen.Y), float32(screenCursor.X-s.startScreen.X), float32(screenCursor.Y-s.startScreen.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 }

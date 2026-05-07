@@ -12,8 +12,7 @@
 - [ ] see the current action (debug?)
 - [ ] spawner: show queue
 - [ ] keyboard config
-- [ ] bigger map
-- [ ] move the map view
+- [ ] display selected entity name in bottom banner
 - [ ] ecs array: on delete, replace by last and update id->index map
 - [ ] collision based move w smaller accuracy
 - [ ] perf: look for nil comparison -> more data oriented
@@ -26,6 +25,7 @@
 - [ ] getMoveMap could be a maintained index
 - [ ] entityAt could be a maintained index
 - [ ] KeyPatrolRequest shortcut should be Q
+- [ ] mise task manager
 
 ## Bugs
 

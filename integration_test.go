@@ -9,6 +9,68 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCameraScreenToWorldRoundTrip(t *testing.T) {
+	zooms := []float64{0.25, 0.5, 1.0, 2.0, 3.0}
+	points := []physics.Point{
+		{X: 1000, Y: 1000},
+		{X: 0, Y: 0},
+		{X: 3200, Y: 2400},
+		{X: 1600, Y: 1200},
+	}
+	for _, zoom := range zooms {
+		cam := Camera{X: 1600, Y: 1200, Zoom: zoom}
+		for _, p := range points {
+			sx, sy := cam.WorldToScreen(p)
+			got := cam.ScreenToWorld(int(sx), int(sy))
+			assert.Equal(t, p, got, "zoom=%.2f point=%v", zoom, p)
+		}
+	}
+}
+
+func TestCameraClampsToBounds(t *testing.T) {
+	cases := []struct{ x, y float64 }{
+		{-99999, -99999},
+		{99999, 99999},
+		{-99999, 99999},
+		{99999, -99999},
+	}
+	for _, c := range cases {
+		cam := Camera{X: c.x, Y: c.y, Zoom: 1.0}
+		cam.clampToBounds()
+		halfW := (ScreenWidth / 2.0) / cam.Zoom
+		halfH := (ScreenHeight / 2.0) / cam.Zoom
+		assert.GreaterOrEqual(t, cam.X, halfW, "X=%v should be >= halfW", c.x)
+		assert.LessOrEqual(t, cam.X, float64(WorldWidth)-halfW, "X=%v should be <= maxX", c.x)
+		assert.GreaterOrEqual(t, cam.Y, halfH, "Y=%v should be >= halfH", c.y)
+		assert.LessOrEqual(t, cam.Y, float64(WorldHeight)-halfH, "Y=%v should be <= maxY", c.y)
+	}
+}
+
+func TestCameraZoomTowardCursor(t *testing.T) {
+	zooms := []struct{ before, after float64 }{
+		{1.0, 2.0},
+		{1.0, 0.5},
+		{2.0, 3.0},
+	}
+	cursorSX, cursorSY := 400, 300
+	for _, z := range zooms {
+		cam := Camera{X: 1600, Y: 1200, Zoom: z.before}
+		worldBefore := cam.ScreenToWorld(cursorSX, cursorSY)
+
+		// replicate the zoom-toward-cursor logic from Camera.Update
+		wx0 := float64(cursorSX-ScreenWidth/2)/cam.Zoom + cam.X
+		wy0 := float64(cursorSY-ScreenHeight/2)/cam.Zoom + cam.Y
+		cam.Zoom = z.after
+		wx1 := float64(cursorSX-ScreenWidth/2)/cam.Zoom + cam.X
+		wy1 := float64(cursorSY-ScreenHeight/2)/cam.Zoom + cam.Y
+		cam.X -= wx1 - wx0
+		cam.Y -= wy1 - wy0
+
+		worldAfter := cam.ScreenToWorld(cursorSX, cursorSY)
+		assert.Equal(t, worldBefore, worldAfter, "zoom %.1f→%.1f: world point under cursor should be stable", z.before, z.after)
+	}
+}
+
 func TestGatherLoop(t *testing.T) {
 	// Initialize Game
 	game := &Game{}

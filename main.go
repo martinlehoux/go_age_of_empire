@@ -32,6 +32,7 @@ var soilColor = color.RGBA{0x60, 0x40, 0x20, 0xff}
 
 type Game struct {
 	CurrentAction   Action
+	Camera          Camera
 	GlobalSelection selection.GlobalSelection
 	ResourceAmount  int
 	FaceSource      *text.GoTextFaceSource
@@ -83,7 +84,7 @@ func (g *Game) getMoveMap() physics.MoveMap {
 			blocked[g.Position[i]] = true
 		}
 	}
-	return physics.MoveMap{Width: 3200, Height: 2400, Blocked: blocked}
+	return physics.MoveMap{Width: WorldWidth, Height: WorldHeight, Blocked: blocked}
 }
 
 func (g *Game) entityAt(position physics.Point) ecs.Entity {
@@ -119,6 +120,8 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.GlobalSelection.Start(cursor)
+		sx, sy := ebiten.CursorPosition()
+		g.GlobalSelection.StartScreen(physics.Point{X: sx, Y: sy})
 	}
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonRight) {
 		destination := cursor.Div(100).Mul(100)
@@ -151,8 +154,9 @@ func (g *Game) updateSelecting(cursor physics.Point, moveMap physics.MoveMap) {
 }
 
 func (g *Game) Update() error {
-	x, y := ebiten.CursorPosition()
-	cursor := physics.Point{X: x, Y: y}
+	g.Camera.Update(1.0 / 60.0)
+	sx, sy := ebiten.CursorPosition()
+	cursor := g.Camera.ScreenToWorld(sx, sy)
 	if inpututil.IsKeyJustReleased(ebiten.KeyEscape) {
 		g.CurrentAction = Selecting
 		slog.Info("selecting action")
@@ -179,7 +183,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 3200, 2400
+	return ScreenWidth, ScreenHeight
 }
 
 func main() {
@@ -194,7 +198,7 @@ func main() {
 	}
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logHandler))
-	ebiten.SetWindowSize(960, 640)
+	ebiten.SetWindowSize(ScreenWidth, ScreenHeight)
 	ebiten.SetWindowTitle("Age of Empire")
 	icon, err := os.Open("icon-crop.jpg")
 	kcore.Expect(err, "failed to open icon")
@@ -204,6 +208,11 @@ func main() {
 	ebiten.SetWindowIcon([]image.Image{iconImg})
 	game := &Game{
 		ResourceAmount: 150,
+		Camera: Camera{
+			X:    1000,
+			Y:    1000,
+			Zoom: 1.0,
+		},
 	}
 	fontData, err := os.ReadFile("fonts/Cinzel-VariableFont_wght.ttf")
 	kcore.Expect(err, "failed to read font")
