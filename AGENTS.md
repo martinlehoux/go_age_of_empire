@@ -1,12 +1,5 @@
-## Quality
-
 - After code modification, before telling author you're done, run the tests `go test ./...`
 - Wait for explicit commit instructions, do not do on your own
-
-## Tests
-
 - Use testify for test assertions
-
-## Documentation
-
+- When possible, bug fixing start by writing a failing test
 - Do not mark README tasks as done, remove them entirely when complete
