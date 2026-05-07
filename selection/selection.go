@@ -140,5 +140,5 @@ func (s *GlobalSelection) Unselect(selectables []Selectable) {
 }
 
 func (s *GlobalSelection) Draw(dst *ebiten.Image, screenCursor physics.Point) {
-	vector.StrokeRect(dst, float32(s.startScreen.X), float32(s.startScreen.Y), float32(screenCursor.X-s.startScreen.X), float32(screenCursor.Y-s.startScreen.Y), 10.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
+	vector.StrokeRect(dst, float32(s.startScreen.X), float32(s.startScreen.Y), float32(screenCursor.X-s.startScreen.X), float32(screenCursor.Y-s.startScreen.Y), 2.0, color.RGBA{256 * 3 / 16, 256 * 3 / 16, 256 * 3 / 16, 256 / 4}, true)
 }
