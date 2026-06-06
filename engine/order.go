@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"log/slog"
@@ -22,7 +22,7 @@ func MainAction(g *Game, mainEntity ecs.Entity, target physics.Point, moveMap ph
 	gatherTargetRequired := ecs.CM_ResourceSource
 	mainGatherRequired := ecs.CM_ResourceGatherer | ecs.CM_Move
 	if targetEntity >= 0 && (g.Mask[targetEntity]&gatherTargetRequired == gatherTargetRequired) && (mask&mainGatherRequired == mainGatherRequired) {
-		Gather(g.getMoveMap(), g.Position[mainEntity], &g.Move[mainEntity], &g.Order[mainEntity], &g.ResourceGatherer[mainEntity], targetEntity, g.Position[targetEntity])
+		Gather(g.GetMoveMap(), g.Position[mainEntity], &g.Move[mainEntity], &g.Order[mainEntity], &g.ResourceGatherer[mainEntity], targetEntity, g.Position[targetEntity])
 		return
 	}
 	moveRequired := ecs.CM_Move | ecs.CM_Position

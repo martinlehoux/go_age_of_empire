@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"log/slog"
@@ -37,12 +37,12 @@ func UpdateSpawnSystem(g *Game, now time.Time, masks []ecs.Mask, spawns []Spawn,
 			if len(spawn.Requests) == 0 || now.Sub(spawn.Requests[0].Start) < time.Duration(spawn.UnitSpawnDuration) {
 				continue
 			}
-			spawnPosition, _ := physics.Closest(position, physics.AdjacentPoints(position), g.getMoveMap())
+			spawnPosition, _ := physics.Closest(position, physics.AdjacentPoints(position), g.GetMoveMap())
 			unit := g.Append(g.UnitBuilder.WithPosition(spawnPosition).Build())
 			slog.Info("Spawned unit")
 			if spawn.SpawnTarget.Ok {
 				slog.Info("Unit has spawn target")
-				MainAction(g, unit, spawn.SpawnTarget.Value, g.getMoveMap())
+				MainAction(g, unit, spawn.SpawnTarget.Value, g.GetMoveMap())
 			}
 			spawn.Requests = spawn.Requests[1:]
 			if len(spawn.Requests) > 0 {

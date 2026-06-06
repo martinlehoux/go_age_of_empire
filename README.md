@@ -1,3 +1,5 @@
+Run `go run . example` to browse and launch curated gameplay scenarios (combat, gathering, etc.)  
+
 ## Debugging
 
 - Restart after kernel update until `glxinfo | grep "OpenGL version"` works
