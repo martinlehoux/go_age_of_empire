@@ -1,1 +1,0 @@
-/home/kagamino/Projects/go_age_of_empire/AGENTS.md
